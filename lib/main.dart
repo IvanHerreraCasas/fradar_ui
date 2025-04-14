@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
+import 'package:fradar_ui/data/sources/local_job_storage_api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Import Data Layer components
@@ -34,6 +35,7 @@ void main() async {
 
   // 2. Initialize SettingsApi
   final settingsApi = LocalSettingsApi(plugin: sharedPreferences);
+  final jobStorageApi = LocalJobStorageApi(plugin: sharedPreferences);
 
   // 3. Initialize Dio Client
   final baseUrl = await settingsApi.getApiBaseUrl() ?? 'http://localhost:8000/api/v1'; // Default fallback
@@ -54,6 +56,7 @@ void main() async {
   final radprocRepository = RadprocRepository(
     radprocApi: radprocApi,
     settingsApi: settingsApi,
+    jobStorageApi: jobStorageApi,
     dioClient: dioClient,
     sseService: sseService, // Provide it here
   );

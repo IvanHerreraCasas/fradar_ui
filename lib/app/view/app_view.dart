@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fradar_ui/app/bloc/app_bloc.dart';
 import 'package:fradar_ui/app/bloc/app_state.dart';
+import 'package:fradar_ui/presentation/features/tasks/view/tasks_screen.dart';
 import 'package:fradar_ui/presentation/navigation/expandable_sidebar.dart';
 
 // Import Feature Screens (create placeholder files for now if they don't exist)
@@ -42,8 +43,7 @@ class AppView extends StatelessWidget {
                       const HistoricPlotsScreen(), // Index 1
                       // TimeseriesScreen(), // Index 2
                        _buildPlaceholder('Timeseries'), // Index 2
-                      // TasksScreen(), // Index 3
-                      _buildPlaceholder('Tasks'), // Index 3
+                      const TasksScreen(), // Index 3
                       const SettingsScreen(), // Index 4 - We'll implement this next
                     ],
                   );

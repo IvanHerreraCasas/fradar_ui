@@ -1,9 +1,9 @@
 // lib/domain/repositories/radproc_repository.dart
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:fradar_ui/data/api/job_storage_api.dart';
 import 'package:fradar_ui/data/api/radproc_api.dart';
 import 'package:fradar_ui/data/api/settings_api.dart';
 import 'package:fradar_ui/data/sources/http_radproc_api.dart';
@@ -18,17 +18,28 @@ class RadprocRepository {
   RadprocRepository({
     required RadprocApi radprocApi,
     required SettingsApi settingsApi,
+    required JobStorageApi jobStorageApi,
     required Dio dioClient, // Add Dio client
     required SseService sseService, // Add SseService
   }) : _radprocApi = radprocApi,
        _settingsApi = settingsApi,
+        _jobStorageApi = jobStorageApi,
        _dioClient = dioClient,
        _sseService = sseService; // Store Dio client
 
   final RadprocApi _radprocApi;
   final SettingsApi _settingsApi;
+  final JobStorageApi _jobStorageApi;
   final Dio _dioClient; // Store Dio client instance
   final SseService _sseService;
+
+
+  // Central StreamController for broadcasting job updates
+  // Use broadcast so multiple BLoCs can listen (e.g., HistoricPlotsBloc and TasksBloc)
+  final _jobUpdateController = StreamController<Job>.broadcast();
+
+  /// A stream that emits [Job] updates whenever a monitored job's status changes.
+  Stream<Job> get jobUpdates => _jobUpdateController.stream;
 
   /// Fetches the currently saved API Base URL from settings.
   Future<String?> getApiBaseUrl() => _settingsApi.getApiBaseUrl();
@@ -212,9 +223,9 @@ class RadprocRepository {
       final initialJob = Job.submitted(
         taskId: taskId,
         jobType: JobType.animation,
-        parameters: params, // Store parameters including format
+        parameters: params,
       );
-      // TODO: Optionally save initialJob via JobStorageApi here
+      await _jobStorageApi.saveJob(initialJob); // Save initial job state
       return initialJob;
     } on RadprocApiException {
       rethrow;
@@ -235,17 +246,27 @@ class RadprocRepository {
       if (controller.isClosed) return; // Stop if controller is closed
       try {
         final statusMap = await _radprocApi.getJobStatus(currentJob.taskId);
+        final previousStatus = currentJob.status; // Remember previous status
         currentJob = currentJob.updateFromApiStatus(
           statusMap,
         ); // Update local state
-        controller.add(currentJob); // Emit the updated job
+
+        // Save updated job status to storage
+        await _jobStorageApi.saveJob(currentJob);
+        // Broadcast the update on the central stream
+        _jobUpdateController.add(currentJob);
+         // Also emit on the local stream for the direct caller
+        controller.add(currentJob);
 
         // Stop polling if job is in a final state
-        if (currentJob.status == JobStatusEnum.success ||
+        if (currentJob.status != previousStatus && (
+            currentJob.status == JobStatusEnum.success ||
             currentJob.status == JobStatusEnum.failure ||
-            currentJob.status == JobStatusEnum.revoked) {
+            currentJob.status == JobStatusEnum.revoked))
+        {
+          print('Job ${currentJob.taskId} reached final state: ${currentJob.status.name}');
           timer?.cancel();
-          controller.close(); // Close the stream
+          controller.close();
         }
       } on RadprocApiException catch (e) {
         print('Error polling job ${currentJob.taskId}: $e');
@@ -264,8 +285,10 @@ class RadprocRepository {
           status: JobStatusEnum.unknown,
           errorMessage: e.toString(),
         );
-        controller.add(currentJob); // Emit error state
-        controller.addError(e);
+        await _jobStorageApi.saveJob(currentJob); // Save error state
+        _jobUpdateController.add(currentJob); // Broadcast error state
+        controller.add(currentJob);
+        controller.addError(e); // Propagate error on local stream
         timer?.cancel();
         controller.close();
       }
@@ -286,6 +309,11 @@ class RadprocRepository {
 
     return controller.stream;
   }
+
+  // --- Job Persistence Methods ---
+  Future<List<Job>> getPersistedJobs() => _jobStorageApi.loadJobs();
+  Future<void> deleteJobRecord(String taskId) => _jobStorageApi.deleteJob(taskId);
+  Future<void> clearAllJobRecords() => _jobStorageApi.clearAllJobs();
 
   /// Fetches the animation file bytes for a successfully completed animation job.
   Future<Uint8List> fetchAnimationResult(String taskId) async {
@@ -363,6 +391,8 @@ class RadprocRepository {
   // Dispose SSE service when repository is disposed (if repository lifecycle is managed)
   // This might happen in main.dart or higher up depending on setup
   void dispose() {
+    print('Disposing Repository and closing job update stream.');
+    _jobUpdateController.close();
     _sseService.dispose();
   }
 }

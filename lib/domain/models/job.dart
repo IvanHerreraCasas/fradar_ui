@@ -1,6 +1,5 @@
 // lib/domain/models/job.dart
 import 'package:equatable/equatable.dart';
-import 'dart:typed_data';
 
 enum JobType { animation, timeseries, accumulation, unknown }
 enum JobStatusEnum { pending, running, success, failure, revoked, unknown }
@@ -76,6 +75,42 @@ class Job extends Equatable {
       errorMessage: errorInfo,
       // resultData: resultInfo, // Update result hint if needed
       lastCheckedAt: DateTime.now(),
+    );
+  }
+
+  // --- JSON Serialization ---
+
+  Map<String, dynamic> toJson() {
+    // Convert DateTime to ISO8601 string for JSON
+    // Convert enums to string
+    return {
+      'taskId': taskId,
+      'jobType': jobType.name, // Enum to string
+      'parameters': parameters, // Assumes parameters are already json-safe
+      'status': status.name, // Enum to string
+      'statusDetails': statusDetails,
+      'submittedAt': submittedAt?.toIso8601String(),
+      'lastCheckedAt': lastCheckedAt?.toIso8601String(),
+      'errorMessage': errorMessage,
+      // DO NOT serialize resultData (like Uint8List) directly to JSON easily
+    };
+  }
+
+  factory Job.fromJson(Map<String, dynamic> json) {
+    // Convert string back to DateTime using parse
+    // Convert string back to enum using .values.byName or switch
+    return Job(
+      taskId: json['taskId'] as String? ?? '',
+      jobType: JobType.values.firstWhere(
+          (e) => e.name == json['jobType'], orElse: () => JobType.unknown),
+      parameters: Map<String, dynamic>.from(json['parameters'] ?? {}),
+      status: JobStatusEnum.values.firstWhere(
+          (e) => e.name == json['status'], orElse: () => JobStatusEnum.unknown),
+      statusDetails: json['statusDetails'] as String? ?? '',
+      submittedAt: json['submittedAt'] == null ? null : DateTime.tryParse(json['submittedAt']),
+      lastCheckedAt: json['lastCheckedAt'] == null ? null : DateTime.tryParse(json['lastCheckedAt']),
+      errorMessage: json['errorMessage'] as String?,
+      // resultData is not loaded from JSON
     );
   }
 
