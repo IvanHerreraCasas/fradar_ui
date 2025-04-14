@@ -19,9 +19,23 @@ class DeleteTask extends TasksEvent {
  /// Clear all completed/failed task records.
 class ClearTerminatedTasks extends TasksEvent {}
 
-/// Internal event when the repository broadcasts a job update.
-class JobUpdatedInternal extends TasksEvent {
-   const JobUpdatedInternal(this.job);
+/// User requested to download the result of a completed job.
+class DownloadJobResultRequested extends TasksEvent {
+  const DownloadJobResultRequested(this.job);
+  final Job job;
+  @override List<Object> get props => [job];
+}
+
+/// Internal: A relevant background job was updated via repo stream.
+class JobUpdateReceived extends TasksEvent { // Renamed this previously
+   const JobUpdateReceived(this.job);
    final Job job;
    @override List<Object> get props => [job];
+}
+
+/// Internal: A general error occurred during task processing.
+class ErrorOccurredInternal extends TasksEvent { // Renamed this previously
+   const ErrorOccurredInternal(this.message);
+   final String message;
+   @override List<Object> get props => [message];
 }

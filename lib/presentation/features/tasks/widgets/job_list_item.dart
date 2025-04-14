@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fradar_ui/presentation/features/tasks/bloc/tasks_state.dart';
 import 'package:intl/intl.dart';
 import 'package:fradar_ui/domain/models/job.dart';
 import 'package:fradar_ui/presentation/features/tasks/bloc/tasks_bloc.dart';
@@ -85,9 +86,33 @@ class JobListItem extends StatelessWidget {
           ),
         ),
         // --- Trailing Actions ---
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: _buildActionButtons(context, job), // Use helper for actions
+        trailing: BlocBuilder<TasksBloc, TasksState>(
+          // Rebuild actions based on processing state
+          // Build only when the processingTaskId changes relevant to this item
+          buildWhen:
+              (prev, current) =>
+                  (prev.processingTaskId == job.taskId &&
+                      current.processingTaskId != job.taskId) ||
+                  (prev.processingTaskId != job.taskId &&
+                      current.processingTaskId == job.taskId),
+          builder: (context, state) {
+            // Show loading indicator if this task is being processed
+            if (state.processingTaskId == job.taskId) {
+              return const Padding(
+                padding: EdgeInsets.all(8.0), // Adjust padding as needed
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              );
+            }
+            // Otherwise, show buttons
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: _buildActionButtons(context, job, state), // Pass state
+            );
+          },
         ),
         // Let ListTile determine if it needs three lines based on content
         // isThreeLine: true, // Remove this, let it adapt
@@ -184,7 +209,11 @@ class JobListItem extends StatelessWidget {
   }
 
   // Helper for action buttons
-  List<Widget> _buildActionButtons(BuildContext context, Job job) {
+  List<Widget> _buildActionButtons(
+    BuildContext context,
+    Job job,
+    TasksState state,
+  ) {
     final bloc = context.read<TasksBloc>();
     final List<Widget> buttons = [];
     final bool canDownload = job.status == JobStatusEnum.success;
@@ -198,15 +227,8 @@ class JobListItem extends StatelessWidget {
           tooltip: 'Download Result',
           iconSize: 20, // Smaller icon
           onPressed: () {
-            // TODO: Dispatch proper Download event to TasksBloc
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Initiating download for ${job.taskId}... (Needs event)',
-                ),
-              ),
-            );
-            // Example: bloc.add(DownloadJobResultRequested(job));
+            // Dispatch the actual download event
+            bloc.add(DownloadJobResultRequested(job));
           },
         ),
       );
@@ -286,22 +308,5 @@ class JobListItem extends StatelessWidget {
       default:
         return theme.disabledColor;
     }
-  }
-
-  // Helper to trigger download (avoids repository access directly in widget)
-  void _triggerDownload(BuildContext context, Job job) {
-    final tasksBloc = context.read<TasksBloc>();
-    // Access repository via TasksBloc is not ideal.
-    // Better: TasksBloc dispatches an event like DownloadJobResult(job)
-    // The bloc then calls repository.downloadAnimationResult(job) etc.
-    // For now, just printing.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Initiating download for ${job.taskId}... (Implementation needed in Bloc/Repo)',
-        ),
-      ),
-    );
-    // Example: tasksBloc.add(DownloadJobResult(job));
   }
 }
