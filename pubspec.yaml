@@ -39,6 +39,11 @@ dependencies:
   dio: ^5.8.0+1
   shared_preferences: ^2.5.3
   flutter_client_sse: ^2.0.3
+  intl: ^0.20.2
+  video_player: ^2.9.5
+  path_provider: ^2.1.5
+  file_saver: ^0.2.14
+  file_picker: ^10.1.2
 
 dev_dependencies:
   flutter_test:

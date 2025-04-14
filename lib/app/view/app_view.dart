@@ -8,7 +8,7 @@ import 'package:fradar_ui/presentation/navigation/expandable_sidebar.dart';
 // Import Feature Screens (create placeholder files for now if they don't exist)
 import 'package:fradar_ui/presentation/features/settings/view/settings_screen.dart';
 import 'package:fradar_ui/presentation/features/realtime_plot/view/realtime_plot_screen.dart';
-// import 'package:fradar_ui/presentation/features/historic_plots/view/historic_plots_screen.dart';
+import 'package:fradar_ui/presentation/features/historic_plots/view/historic_plots_screen.dart';
 // import 'package:fradar_ui/presentation/features/timeseries/view/timeseries_screen.dart';
 // import 'package:fradar_ui/presentation/features/tasks/view/tasks_screen.dart';
 
@@ -39,9 +39,7 @@ class AppView extends StatelessWidget {
                     index: state.selectedIndex,
                     children: [
                       const RealtimePlotScreen(), // Index 0
-                      _buildPlaceholder('Realtime'), // Index 0
-                      // HistoricPlotsScreen(), // Index 1
-                      _buildPlaceholder('Historic'), // Index 1
+                      const HistoricPlotsScreen(), // Index 1
                       // TimeseriesScreen(), // Index 2
                        _buildPlaceholder('Timeseries'), // Index 2
                       // TasksScreen(), // Index 3
