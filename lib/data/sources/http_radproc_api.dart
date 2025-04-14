@@ -19,6 +19,13 @@ class HttpRadprocApi implements RadprocApi {
   String _jobStatusPath(String taskId) => '/jobs/$taskId/status';
   String _animationJobResultPath(String taskId) =>
       '/jobs/animation/$taskId/data';
+  // API Paths
+  static const String _timeseriesJobPath = '/jobs/timeseries';
+  static const String _accumulationJobPath = '/jobs/accumulation';
+  String _timeseriesJobResultPath(String taskId) =>
+      '/jobs/timeseries/$taskId/data';
+  String _accumulationJobResultPath(String taskId) =>
+      '/jobs/accumulation/$taskId/data';
 
   // Date formatter for API query/body parameters (ISO 8601)
   final _isoFormatter = DateFormat("yyyy-MM-ddTHH:mm:ss'Z'"); // Use UTC 'Z'
@@ -275,6 +282,158 @@ class HttpRadprocApi implements RadprocApi {
     } catch (e) {
       throw RadprocApiException(
         'Unexpected error getting animation result: $e',
+      );
+    }
+  }
+
+  @override
+  Future<String> submitTimeseriesJob(
+    String pointName,
+    DateTime startDt,
+    DateTime endDt,
+    String? variable,
+  ) async {
+    final body = {
+      'point_name': pointName,
+      'start_dt': _isoFormatter.format(startDt.toUtc()),
+      'end_dt': _isoFormatter.format(endDt.toUtc()),
+      if (variable != null) 'variable': variable,
+    };
+    try {
+      final response = await _dioClient.post(_timeseriesJobPath, data: body);
+      if (response.statusCode == 202 && response.data?['task_id'] is String) {
+        return response.data['task_id'] as String;
+      } else {
+        throw RadprocApiException(
+          'Failed to submit timeseries job: Unexpected response',
+        );
+      }
+    } on DioException catch (e) {
+      /* ... */
+      throw RadprocApiException(
+        'API Error submitting timeseries job: ${e.message}',
+        e,
+      );
+    } catch (e) {
+      /* ... */
+      throw RadprocApiException(
+        'Unexpected error submitting timeseries job: $e',
+      );
+    }
+  }
+
+  @override
+  Future<String> submitAccumulationJob(
+    String pointName,
+    DateTime startDt,
+    DateTime endDt,
+    String interval,
+    String? rateVariable,
+  ) async {
+    final body = {
+      'point_name': pointName,
+      'start_dt': _isoFormatter.format(startDt.toUtc()),
+      'end_dt': _isoFormatter.format(endDt.toUtc()),
+      'interval': interval,
+      if (rateVariable != null) 'rate_variable': rateVariable,
+    };
+    try {
+      final response = await _dioClient.post(_accumulationJobPath, data: body);
+      if (response.statusCode == 202 && response.data?['task_id'] is String) {
+        return response.data['task_id'] as String;
+      } else {
+        throw RadprocApiException(
+          'Failed to submit accumulation job: Unexpected response',
+        );
+      }
+    } on DioException catch (e) {
+      /* ... */
+      throw RadprocApiException(
+        'API Error submitting accumulation job: ${e.message}',
+        e,
+      );
+    } catch (e) {
+      /* ... */
+      throw RadprocApiException(
+        'Unexpected error submitting accumulation job: $e',
+      );
+    }
+  }
+
+  @override
+  Future<dynamic> getTimeseriesJobResult(String taskId, String format) async {
+    final path = _timeseriesJobResultPath(taskId);
+    final params = {'format': format}; // Add format parameter
+    try {
+      // Request raw response to handle JSON/CSV difference potentially
+      final response = await _dioClient.get<dynamic>(
+        path,
+        queryParameters: params,
+        // Use default ResponseType (JSON usually), API should set Content-Type
+      );
+      // API guide implies 200 OK on success
+      if (response.statusCode == 200 && response.data != null) {
+        // Return raw data, let repository parse
+        return response.data;
+      } else {
+        throw RadprocApiException(
+          'Failed to get timeseries result: Unexpected status ${response.statusCode}',
+        );
+      }
+    } on DioException catch (e) {
+      // Handle 202 (Pending), 400 (Failed), 404 (Not Found) based on status code if needed
+      if (e.response?.statusCode == 202)
+        throw RadprocApiException('Job still pending', e);
+      if (e.response?.statusCode == 400)
+        throw RadprocApiException('Job failed or revoked', e);
+      if (e.response?.statusCode == 404)
+        throw RadprocApiException('Timeseries result not found', e);
+      throw RadprocApiException(
+        'API Error getting timeseries result: ${e.message}',
+        e,
+      );
+    } catch (e) {
+      throw RadprocApiException(
+        'Unexpected error getting timeseries result: $e',
+      );
+    }
+  }
+
+  @override
+  Future<String> getAccumulationJobResult(String taskId) async {
+    final path = _accumulationJobResultPath(taskId);
+    try {
+      // Expecting text/csv
+      final response = await _dioClient.get<String>(
+        path,
+        options: Options(
+          responseType: ResponseType.plain,
+        ), // Request plain text
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data!;
+      } else {
+        throw RadprocApiException(
+          'Failed to get accumulation result: Unexpected status ${response.statusCode}',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 202) {
+        throw RadprocApiException('Job still pending', e);
+      }
+      if (e.response?.statusCode == 400) {
+        throw RadprocApiException('Job failed or revoked', e);
+      }
+      if (e.response?.statusCode == 404) {
+        throw RadprocApiException('Accumulation result not found', e);
+      }
+      throw RadprocApiException(
+        'API Error getting accumulation result: ${e.message}',
+        e,
+      );
+    } catch (e) {
+      throw RadprocApiException(
+        'Unexpected error getting accumulation result: $e',
       );
     }
   }

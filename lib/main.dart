@@ -6,8 +6,6 @@ import 'package:fradar_ui/data/sources/local_job_storage_api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Import Data Layer components
-import 'package:fradar_ui/data/api/radproc_api.dart';
-import 'package:fradar_ui/data/api/settings_api.dart';
 import 'package:fradar_ui/data/sources/http_radproc_api.dart';
 import 'package:fradar_ui/data/sources/local_settings_api.dart';
 import 'package:fradar_ui/data/services/sse_service.dart';

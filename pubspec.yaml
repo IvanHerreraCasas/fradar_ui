@@ -44,6 +44,12 @@ dependencies:
   path_provider: ^2.1.5
   file_saver: ^0.2.14
   file_picker: ^10.1.2
+  csv: ^6.0.0
+  collection: ^1.19.1
+  flutter_map: ^8.1.1
+  latlong2: ^0.9.1
+  fl_chart: ^0.70.2
+  bloc_concurrency: ^0.3.0
 
 dev_dependencies:
   flutter_test:
