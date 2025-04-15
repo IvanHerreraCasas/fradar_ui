@@ -6,6 +6,7 @@ import 'package:fradar_ui/domain/models/point.dart'; // Import Point model
 import 'package:fradar_ui/presentation/features/timeseries/bloc/timeseries_bloc.dart';
 import 'package:fradar_ui/presentation/features/timeseries/bloc/timeseries_event.dart';
 import 'package:fradar_ui/presentation/features/timeseries/bloc/timeseries_state.dart';
+import 'package:fradar_ui/presentation/shared_widgets/variable_selector.dart';
 
 class TimeseriesControls extends StatefulWidget {
   // Changed back to StatefulWidget
@@ -20,16 +21,6 @@ class _TimeseriesControlsState extends State<TimeseriesControls> {
   // Add back display controllers
   final _startDateController = TextEditingController();
   final _endDateController = TextEditingController();
-
-  // TODO: Get these lists from config/points later
-  final List<String> _variables = const [
-    accumulationVariable,
-    'RATE',
-    'DBZ',
-    'VR',
-    'WIDTH',
-  ]; // Ensure accumulationVariable is defined or imported
-  // final List<double> _elevations = const [0.5, 1.0, 1.5, 2.0, 3.0]; // Not needed here
 
   // Date Formatter for display
   final _displayFormatter = DateFormat('yyyy-MM-dd HH:mm');
@@ -181,11 +172,8 @@ class _TimeseriesControlsState extends State<TimeseriesControls> {
             );
           }
 
-          final variableOptions = _getVariableOptions(state.availablePoints);
-          final currentSelectedVariable =
-              variableOptions.contains(state.selectedVariable)
-                  ? state.selectedVariable
-                  : (variableOptions.isNotEmpty ? variableOptions.first : '');
+          
+          final currentSelectedVariable = state.selectedVariable;
 
           return Scaffold(
             backgroundColor: Theme.of(context).canvasColor,
@@ -202,17 +190,9 @@ class _TimeseriesControlsState extends State<TimeseriesControls> {
                       padding: const EdgeInsets.all(12.0),
                       children: [
                         // Variable Dropdown
-                        DropdownButtonFormField<String>(
-                          value: currentSelectedVariable,
-                          items:
-                              variableOptions
-                                  .map(
-                                    (v) => DropdownMenuItem(
-                                      value: v,
-                                      child: Text(v),
-                                    ),
-                                  )
-                                  .toList(),
+                        VariableSelector(
+                          precipitation: true,
+                          selectedVariable: currentSelectedVariable,
                           onChanged:
                               interactionDisabled
                                   ? null
@@ -221,10 +201,6 @@ class _TimeseriesControlsState extends State<TimeseriesControls> {
                                       bloc.add(VariableSelected(value));
                                     }
                                   },
-                          decoration: const InputDecoration(
-                            labelText: 'Variable / Type',
-                            border: OutlineInputBorder(),
-                          ),
                         ),
                         const SizedBox(height: 10),
 
@@ -351,10 +327,5 @@ class _TimeseriesControlsState extends State<TimeseriesControls> {
     );
   }
 
-  List<String> _getVariableOptions(List<Point> availablePoints) {
-    final standardVars =
-        availablePoints.map((p) => p.variable).toSet().toList();
-    standardVars.sort();
-    return [accumulationVariable, ...standardVars];
-  }
+
 }

@@ -6,6 +6,8 @@ import 'package:intl/intl.dart'; // For date formatting
 import 'package:fradar_ui/presentation/features/historic_plots/bloc/historic_plots_bloc.dart';
 import 'package:fradar_ui/presentation/features/historic_plots/bloc/historic_plots_event.dart';
 import 'package:fradar_ui/presentation/features/historic_plots/bloc/historic_plots_state.dart';
+import 'package:fradar_ui/presentation/shared_widgets/elevation_autocomplete.dart';
+import 'package:fradar_ui/presentation/shared_widgets/variable_selector.dart';
 
 class HistoricControls extends StatefulWidget {
   const HistoricControls({super.key});
@@ -25,18 +27,6 @@ class _HistoricControlsState extends State<HistoricControls> {
   final _startDateController = TextEditingController();
   final _endDateController = TextEditingController();
 
-  // TODO: Get these lists from config/points later
-  final List<String> _variables = const ['RATE', 'DBZ', 'VR', 'WIDTH'];
-  final List<double> _elevations = const [
-    2.5,
-    3.5,
-    4.5,
-    5.5,
-    7.5,
-    10.0,
-    12.5,
-    15.0,
-  ];
   // Date Formatter for display
   final _displayFormatter = DateFormat(
     'yyyy-MM-dd HH:mm',
@@ -181,10 +171,13 @@ class _HistoricControlsState extends State<HistoricControls> {
         final bool interactionDisabled =
             !state.canGenerateOrExport; // Disable if job is running
 
-        
         // Update display fields when state changes (showing local time)
-        _startDateController.text = _displayFormatter.format(state.startDt.toLocal());
-        _endDateController.text = _displayFormatter.format(state.endDt.toLocal());
+        _startDateController.text = _displayFormatter.format(
+          state.startDt.toLocal(),
+        );
+        _endDateController.text = _displayFormatter.format(
+          state.endDt.toLocal(),
+        );
 
         // Update controllers if state changes (and not currently editing - basic check)
         // This could be more sophisticated to avoid disrupting user input
@@ -217,12 +210,8 @@ class _HistoricControlsState extends State<HistoricControls> {
               const Divider(),
 
               // --- Variable ---
-              DropdownButtonFormField<String>(
-                value: state.variable,
-                items:
-                    _variables
-                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                        .toList(),
+              VariableSelector(
+                selectedVariable: state.variable,
                 onChanged:
                     interactionDisabled
                         ? null
@@ -230,36 +219,17 @@ class _HistoricControlsState extends State<HistoricControls> {
                           if (value != null)
                             bloc.add(ParametersChanged(variable: value));
                         },
-                decoration: const InputDecoration(
-                  labelText: 'Variable',
-                  border: OutlineInputBorder(),
-                ),
               ),
               const SizedBox(height: 10),
 
-              // --- Elevation ---
-              DropdownButtonFormField<double>(
-                value: state.elevation,
-                items:
-                    _elevations
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e,
-                            child: Text('${e.toStringAsFixed(1)}°'),
-                          ),
-                        )
-                        .toList(),
-                onChanged:
-                    interactionDisabled
-                        ? null
-                        : (value) {
-                          if (value != null)
-                            bloc.add(ParametersChanged(elevation: value));
-                        },
-                decoration: const InputDecoration(
-                  labelText: 'Elevation',
-                  border: OutlineInputBorder(),
-                ),
+              // --- Elevation Autocomplete ---
+              ElevationAutocomplete(
+                enabled: !interactionDisabled,
+                onSelected: (value) {
+                  bloc.add(ParametersChanged(elevation: value));
+                  // Optionally unfocus after selection
+                  FocusScope.of(context).unfocus();
+                },
               ),
               const SizedBox(height: 10),
 
