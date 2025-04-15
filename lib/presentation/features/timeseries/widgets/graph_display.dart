@@ -201,7 +201,7 @@ class GraphDisplay extends StatelessWidget {
   ) {
     // Calculate min/max Y specific to this point's data
     double minY = 0;
-    double maxY = double.minPositive;
+    double maxY = 10;
     final spots =
         data.map((dp) {
           if (dp.value.isFinite) {
@@ -214,18 +214,10 @@ class GraphDisplay extends StatelessWidget {
           );
         }).toList();
 
-    // Adjust Y range slightly
-    if (minY >= maxY) {
-      minY = 0;
-      maxY = 10;
-    } else {
-      final range = maxY - minY;
-      maxY += range * 0.1;
-    }
+    
 
     return LineChart(
       LineChartData(
-        clipData: FlClipData.all(),
         gridData: const FlGridData(show: true),
         borderData: FlBorderData(
           show: true,
