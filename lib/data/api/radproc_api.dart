@@ -75,7 +75,7 @@ abstract class RadprocApi {
 
   /// Gets the result data (JSON or CSV) for a completed timeseries job.
   /// Returns dynamic for now, repository will handle parsing based on format.
-  Future<dynamic> getTimeseriesJobResult(String taskId, String format);
+  Future<dynamic> getTimeseriesJobResult(String taskId, String format, DateTime startDt, DateTime endDt);
 
   /// Gets the result data (CSV) for a completed accumulation job.
   /// Returns raw CSV content as String (or bytes if preferred).

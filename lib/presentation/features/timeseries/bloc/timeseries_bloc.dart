@@ -369,6 +369,8 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
             parsedData = await _radprocRepository.fetchTimeseriesData(
               job.taskId,
               variableName: variableName,
+              startDt: state.startDt,
+              endDt: state.endDt,
             );
           } else if (job.jobType == JobType.accumulation) {
             parsedData = await _radprocRepository.fetchAccumulationData(
@@ -378,6 +380,7 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
           print(
             'Received ${parsedData.length} processed data points for $pointName.',
           );
+          print(parsedData);
           currentData[pointName] = parsedData; // Store fresh data
         } catch (e) {
           print(

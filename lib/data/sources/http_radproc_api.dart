@@ -361,9 +361,18 @@ class HttpRadprocApi implements RadprocApi {
   }
 
   @override
-  Future<dynamic> getTimeseriesJobResult(String taskId, String format) async {
+  Future<dynamic> getTimeseriesJobResult(
+    String taskId,
+    String format,
+    DateTime startDt,
+    DateTime endDt,
+  ) async {
     final path = _timeseriesJobResultPath(taskId);
-    final params = {'format': format}; // Add format parameter
+    final params = {
+      'format': format,
+      'start_dt': _isoFormatter.format(startDt.toUtc()),
+      'end_dt': _isoFormatter.format(endDt.toUtc()),
+    }; // Add format parameter
     try {
       // Request raw response to handle JSON/CSV difference potentially
       final response = await _dioClient.get<dynamic>(

@@ -357,23 +357,26 @@ class RadprocRepository {
 
   /// Fetches animation bytes, saves to a temp file, returns the file path.
   Future<String> prepareVideoFile(String taskId) async {
-      String? tempFilePath;
-      try {
-        final videoBytes = await fetchAnimationResult(taskId); // Use existing fetcher
-        final tempDir = await getTemporaryDirectory();
-        tempFilePath = '${tempDir.path}/temp_video_${taskId}_${DateTime.now().millisecondsSinceEpoch}.mp4';
-        final tempFile = File(tempFilePath);
-        await tempFile.writeAsBytes(videoBytes, flush: true);
-        print('Video bytes saved to temporary file: $tempFilePath');
-        return tempFilePath;
-      } catch (e) {
-          // Clean up partial file if creation failed mid-way
-          if (tempFilePath != null) {
-            await deleteTempFile(tempFilePath);
-          }
-          print('Error preparing video file in repo: $e');
-          throw Exception('Failed to prepare video file: $e');
+    String? tempFilePath;
+    try {
+      final videoBytes = await fetchAnimationResult(
+        taskId,
+      ); // Use existing fetcher
+      final tempDir = await getTemporaryDirectory();
+      tempFilePath =
+          '${tempDir.path}/temp_video_${taskId}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      final tempFile = File(tempFilePath);
+      await tempFile.writeAsBytes(videoBytes, flush: true);
+      print('Video bytes saved to temporary file: $tempFilePath');
+      return tempFilePath;
+    } catch (e) {
+      // Clean up partial file if creation failed mid-way
+      if (tempFilePath != null) {
+        await deleteTempFile(tempFilePath);
       }
+      print('Error preparing video file in repo: $e');
+      throw Exception('Failed to prepare video file: $e');
+    }
   }
 
   /// Fetches animation bytes and prompts user to save locally using file_picker.
@@ -476,10 +479,17 @@ class RadprocRepository {
   Future<List<TimeseriesDataPoint>> fetchTimeseriesData(
     String taskId, {
     required String variableName,
+    required DateTime startDt,
+    required DateTime endDt,
   }) async {
     try {
       // Force format to JSON for internal data use
-      final rawData = await _radprocApi.getTimeseriesJobResult(taskId, 'json');
+      final rawData = await _radprocApi.getTimeseriesJobResult(
+        taskId,
+        'json',
+        startDt,
+        endDt,
+      );
 
       if (rawData is List) {
         print('Parsing JSON for variable: $variableName');
@@ -514,7 +524,11 @@ class RadprocRepository {
     print('Attempting to download timeseries result for job ${job.taskId}');
     try {
       // Fetch as CSV string
-      final csvData = await _fetchTimeseriesCsvString(job.taskId);
+      final csvData = await _fetchTimeseriesCsvString(
+        job.taskId,
+        job.parameters['startDt'],
+        job.parameters['endDt'],
+      );
       print(
         'Fetched ${csvData.length} chars of CSV data for job ${job.taskId}. Prompting user to save...',
       );
@@ -697,9 +711,18 @@ class RadprocRepository {
 
   // --- Internal methods for fetching raw CSV for download ---
 
-  Future<String> _fetchTimeseriesCsvString(String taskId) async {
+  Future<String> _fetchTimeseriesCsvString(
+    String taskId,
+    DateTime startDt,
+    DateTime endDt,
+  ) async {
     try {
-      final rawData = await _radprocApi.getTimeseriesJobResult(taskId, 'csv');
+      final rawData = await _radprocApi.getTimeseriesJobResult(
+        taskId,
+        'csv',
+        startDt,
+        endDt,
+      );
       if (rawData is String) {
         return rawData;
       } else {
@@ -720,7 +743,6 @@ class RadprocRepository {
       rethrow;
     }
   }
-
 
   // Helpers
   // Helper to delete temp file safely
