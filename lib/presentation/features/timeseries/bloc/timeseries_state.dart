@@ -65,12 +65,12 @@ class TimeseriesState extends Equatable {
 
   // Default intervals for accumulation
   static const List<String> defaultIntervals = [
+    '10min',
     '15min',
     '30min',
     '1H',
     '3H',
     '6H',
-    '1D',
   ];
 
   TimeseriesState copyWith({
