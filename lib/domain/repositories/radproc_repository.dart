@@ -1,6 +1,7 @@
 // lib/domain/repositories/radproc_repository.dart
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:collection/collection.dart';
 import 'package:csv/csv.dart';
@@ -17,6 +18,7 @@ import 'package:fradar_ui/domain/models/plot_frame.dart';
 import 'package:fradar_ui/domain/models/job.dart';
 import 'package:fradar_ui/domain/models/plot_update.dart';
 import 'package:fradar_ui/domain/models/timeseries_datapoint.dart';
+import 'package:path_provider/path_provider.dart';
 
 class RadprocRepository {
   RadprocRepository({
@@ -349,6 +351,27 @@ class RadprocRepository {
       print('Unexpected error fetching animation result in repo: $e');
       throw Exception('Could not fetch animation result.');
     }
+  }
+
+  /// Fetches animation bytes, saves to a temp file, returns the file path.
+  Future<String> prepareVideoFile(String taskId) async {
+      String? tempFilePath;
+      try {
+        final videoBytes = await fetchAnimationResult(taskId); // Use existing fetcher
+        final tempDir = await getTemporaryDirectory();
+        tempFilePath = '${tempDir.path}/temp_video_${taskId}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+        final tempFile = File(tempFilePath);
+        await tempFile.writeAsBytes(videoBytes, flush: true);
+        print('Video bytes saved to temporary file: $tempFilePath');
+        return tempFilePath;
+      } catch (e) {
+          // Clean up partial file if creation failed mid-way
+          if (tempFilePath != null) {
+            await deleteTempFile(tempFilePath);
+          }
+          print('Error preparing video file in repo: $e');
+          throw Exception('Failed to prepare video file: $e');
+      }
   }
 
   /// Fetches animation bytes and prompts user to save locally using file_picker.
@@ -693,6 +716,22 @@ class RadprocRepository {
       return await _radprocApi.getAccumulationJobResult(taskId);
     } catch (e) {
       rethrow;
+    }
+  }
+
+
+  // Helpers
+  // Helper to delete temp file safely
+  Future<void> deleteTempFile(String? filePath) async {
+    if (filePath == null) return;
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+        print('Deleted temporary video file: $filePath');
+      }
+    } catch (e) {
+      print('Error deleting temporary file $filePath: $e');
     }
   }
 

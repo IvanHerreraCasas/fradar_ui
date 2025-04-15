@@ -63,11 +63,10 @@ class JobStatusUpdated extends HistoricPlotsEvent {
 /// Internal event for automatic frame advance during playback.
 class PlaybackTimerTick extends HistoricPlotsEvent {}
 
-/// Internal event when the video player finishes initialization.
-class VideoPlayerInitialized extends HistoricPlotsEvent {
-   const VideoPlayerInitialized(this.hasError);
-   final bool hasError;
-   @override List<Object?> get props => [hasError];
+class VideoFileReadyToClean extends HistoricPlotsEvent {
+   const VideoFileReadyToClean(this.filePath);
+   final String filePath;
+   @override List<Object?> get props => [filePath];
 }
 
 /// Internal event to signal a generic error to update state.

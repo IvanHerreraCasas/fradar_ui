@@ -15,8 +15,8 @@ enum HistoricPlotsStatus {
   monitoringJob, // Animation job submitted and being polled
   animationReadyToDownload, // Animation (RATE export) job succeeded
   loadingVideo, // Fetching video bytes after non-RATE job succeeded
-  initializingVideo, // Video bytes fetched, controller initializing
-  videoReady, // Video controller initialized, ready to play
+  videoFileReady, // Temp file written, path available for UI
+  videoDisplayError, // Error specifically during video playback/init in UI
   playbackActive, // Carousel auto-playback is active
   error, // General error state
 }
@@ -35,8 +35,6 @@ class HistoricPlotsState extends Equatable {
     this.isPlaying = false,
     this.fps = 5,
     this.activeJob,
-    this.videoPlayerController,
-    this.isVideoControllerInitialized = false,
     this.tempVideoFilePath, // Store path for cleanup
     this.errorMessage,
   })  : startDt = startDt ?? DateTime.now().subtract(Duration(hours: 1)),
@@ -57,8 +55,6 @@ class HistoricPlotsState extends Equatable {
   final int fps;
   // Job & Video Data
   final Job? activeJob; // Holds the animation job being monitored/processed
-  final VideoPlayerController? videoPlayerController;
-  final bool isVideoControllerInitialized;
   final String? tempVideoFilePath; // Path to the temporary video file
   // General
   final String? errorMessage;
@@ -67,8 +63,7 @@ class HistoricPlotsState extends Equatable {
   bool get canGenerateOrExport =>
       status != HistoricPlotsStatus.submittingJob &&
       status != HistoricPlotsStatus.monitoringJob &&
-      status != HistoricPlotsStatus.loadingVideo &&
-      status != HistoricPlotsStatus.initializingVideo;
+      status != HistoricPlotsStatus.loadingVideo;
 
   HistoricPlotsState copyWith({
     HistoricPlotsStatus? status,
@@ -85,11 +80,9 @@ class HistoricPlotsState extends Equatable {
     int? fps,
     Job? activeJob,
     bool clearActiveJob = false,
-    VideoPlayerController? videoPlayerController,
     String? tempVideoFilePath,
-    bool clearVideoController = false,
-    bool? isVideoControllerInitialized,
     String? errorMessage,
+    bool clearVideoState = false, 
     bool clearError = false,
     bool clearFrames = false,
     bool clearFrameImage = false,
@@ -107,9 +100,7 @@ class HistoricPlotsState extends Equatable {
       isPlaying: isPlaying ?? this.isPlaying,
       fps: fps ?? this.fps,
       activeJob: clearActiveJob ? null : activeJob ?? this.activeJob,
-      videoPlayerController: clearVideoController ? null : videoPlayerController ?? this.videoPlayerController,
-      isVideoControllerInitialized: isVideoControllerInitialized ?? this.isVideoControllerInitialized,
-      tempVideoFilePath: clearVideoController ? null : tempVideoFilePath ?? this.tempVideoFilePath, // Clear path with controller
+      tempVideoFilePath: clearVideoState ? null : tempVideoFilePath ?? this.tempVideoFilePath, // Clear path with controller
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );
   }
@@ -128,8 +119,6 @@ class HistoricPlotsState extends Equatable {
         isPlaying,
         fps,
         activeJob,
-        videoPlayerController, // Controllers generally shouldn't be in Equatable props
-        isVideoControllerInitialized,
         errorMessage,
       ];
 

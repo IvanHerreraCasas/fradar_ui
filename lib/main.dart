@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:fradar_ui/data/sources/local_job_storage_api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fvp/fvp.dart' as fvp;
 
 // Import Data Layer components
 import 'package:fradar_ui/data/sources/http_radproc_api.dart';
@@ -58,6 +59,8 @@ void main() async {
     dioClient: dioClient,
     sseService: sseService, // Provide it here
   );
+
+  fvp.registerWith();
 
   // --- Run the App ---
   runApp(

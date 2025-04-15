@@ -1,12 +1,7 @@
 // lib/presentation/features/historic_plots/bloc/historic_plots_bloc.dart
 import 'dart:async';
-import 'dart:io'; // Import dart:io for File operations
-import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:path_provider/path_provider.dart'; // <--- ADD THIS LINE
-import 'package:video_player/video_player.dart';
 import 'package:fradar_ui/domain/models/job.dart';
-import 'package:fradar_ui/domain/models/plot_frame.dart';
 import 'package:fradar_ui/domain/repositories/radproc_repository.dart';
 import 'historic_plots_event.dart';
 import 'historic_plots_state.dart';
@@ -31,11 +26,8 @@ class HistoricPlotsBloc extends Bloc<HistoricPlotsEvent, HistoricPlotsState> {
     on<DownloadAnimationClicked>(_onDownloadAnimationClicked);
     on<JobStatusUpdated>(_onJobStatusUpdated);
     on<PlaybackTimerTick>(_onPlaybackTimerTick);
-    on<VideoPlayerInitialized>(_onVideoPlayerInitialized);
+    on<VideoFileReadyToClean>(_onVideoFileReadyToClean);
     on<ErrorOccurred>(_onErrorOccurred);
-
-    // Add initial event if needed, e.g., pre-load something
-    // add(LoadInitialHistoricData());
   }
 
   // --- Event Handlers ---
@@ -69,8 +61,7 @@ class HistoricPlotsBloc extends Bloc<HistoricPlotsEvent, HistoricPlotsState> {
         clearFrames: variableChanged,
         clearFrameImage: true, // Always clear image on param change
         clearActiveJob: true, // Cancel any ongoing job/video if params change
-        clearVideoController: true,
-        isVideoControllerInitialized: false,
+        clearVideoState: true,
         isPlaying: false, // Stop playback
         clearError: true,
       ),
@@ -241,7 +232,7 @@ class HistoricPlotsBloc extends Bloc<HistoricPlotsEvent, HistoricPlotsState> {
         status: HistoricPlotsStatus.submittingJob,
         clearError: true,
         clearActiveJob: true,
-        clearVideoController: true,
+        clearVideoState: true,
       ),
     );
 
@@ -282,10 +273,10 @@ class HistoricPlotsBloc extends Bloc<HistoricPlotsEvent, HistoricPlotsState> {
     }
   }
 
-  void _onJobStatusUpdated(
+  Future<void> _onJobStatusUpdated(
     JobStatusUpdated event,
     Emitter<HistoricPlotsState> emit,
-  ) {
+  ) async {
     // Update the job details in the state
     emit(
       state.copyWith(
@@ -304,8 +295,26 @@ class HistoricPlotsBloc extends Bloc<HistoricPlotsEvent, HistoricPlotsState> {
           state.copyWith(status: HistoricPlotsStatus.animationReadyToDownload),
         );
       } else {
-        // For non-RATE, fetch and display the video
-        _fetchAndInitializeVideo(event.job.taskId, emit);
+        // --- Prepare video file ---
+        emit(
+          state.copyWith(
+            status: HistoricPlotsStatus.loadingVideo,
+            activeJob: event.job,
+          ),
+        ); // Keep job info
+        try {
+          final videoPath = await _radprocRepository.prepareVideoFile(
+            event.job.taskId,
+          );
+          emit(
+            state.copyWith(
+              status: HistoricPlotsStatus.videoFileReady, // Signal UI
+              tempVideoFilePath: videoPath, // Provide path
+            ),
+          );
+        } catch (e) {
+          add(ErrorOccurred('Failed to prepare video file: $e'));
+        }
       }
     } else if (event.job.status == JobStatusEnum.failure ||
         event.job.status == JobStatusEnum.revoked) {
@@ -320,101 +329,16 @@ class HistoricPlotsBloc extends Bloc<HistoricPlotsEvent, HistoricPlotsState> {
     // If status is still pending/running, do nothing extra, just keep monitoringJob status updated
   }
 
-  Future<void> _fetchAndInitializeVideo(
-    String taskId,
+  // Handler for cleanup event from UI
+  Future<void> _onVideoFileReadyToClean(
+    VideoFileReadyToClean event,
     Emitter<HistoricPlotsState> emit,
   ) async {
-    emit(
-      state.copyWith(
-        status: HistoricPlotsStatus.loadingVideo,
-        clearVideoController: true,
-      ),
-    ); // Clear previous video stuff
-    String? tempFilePath; // Variable to hold the temp path
-
-    try {
-      final videoBytes = await _radprocRepository.fetchAnimationResult(taskId);
-
-      // 1. Get temporary directory
-      final tempDir = await getTemporaryDirectory();
-      // 2. Create unique filename
-      tempFilePath =
-          '${tempDir.path}/temp_video_${taskId}_${DateTime.now().millisecondsSinceEpoch}.mp4'; // Assuming mp4
-      // 3. Write bytes to file
-      final tempFile = File(tempFilePath);
-      await tempFile.writeAsBytes(videoBytes, flush: true);
-      print('Video bytes saved to temporary file: $tempFilePath');
-
-      // Dispose previous controller just in case (should be handled by clearVideoController, but belt-and-suspenders)
-      await state.videoPlayerController?.dispose();
-
-      // 4. Initialize new controller using .file()
-      final newController = VideoPlayerController.file(tempFile);
-
-      emit(
-        state.copyWith(
-          status: HistoricPlotsStatus.initializingVideo,
-          tempVideoFilePath: tempFilePath, // Store path in state
-          videoPlayerController:
-              newController, // Store controller (uninitialized)
-          isVideoControllerInitialized: false,
-        ),
-      );
-
-      // 5. Listen for initialization completion
-      // Use await here to simplify state management, ensures init completes before next step
-      try {
-        await newController.initialize();
-        // Check if the state context is still valid (i.e., user hasn't changed params etc.)
-        if (state.tempVideoFilePath == tempFilePath &&
-            state.status == HistoricPlotsStatus.initializingVideo) {
-          print('Video player initialized successfully.');
-          // Update state to videoReady
-          add(const VideoPlayerInitialized(false)); // Use internal event
-        } else {
-          print(
-            'Video initialization completed but state context changed, cleaning up.',
-          );
-          await newController.dispose();
-          await _deleteTempFile(tempFilePath); // Clean up the created file
-        }
-      } catch (initError) {
-        print('Video player initialization failed: $initError');
-        add(const VideoPlayerInitialized(true)); // Signal initialization error
-        await newController.dispose();
-        await _deleteTempFile(tempFilePath); // Clean up the created file
-      }
-    } catch (e) {
-      add(ErrorOccurred('Failed to load video: $e'));
-      // Clean up temp file if it was created before error
-      if (tempFilePath != null) {
-        await _deleteTempFile(tempFilePath);
-      }
-    }
-  }
-
-  void _onVideoPlayerInitialized(
-    VideoPlayerInitialized event,
-    Emitter<HistoricPlotsState> emit,
-  ) {
-    if (event.hasError || state.videoPlayerController == null) {
-      add(ErrorOccurred('Failed to initialize video player.'));
-      // Ensure cleanup if initialization failed
-      final controller = state.videoPlayerController;
-      final path = state.tempVideoFilePath;
-      emit(
-        state.copyWith(clearVideoController: true),
-      ); // Clear state references
-      controller?.dispose();
-      _deleteTempFile(path);
-    } else {
-      // Initialization successful, update state
-      emit(
-        state.copyWith(
-          status: HistoricPlotsStatus.videoReady,
-          isVideoControllerInitialized: true, // Mark as ready
-        ),
-      );
+    print('Bloc received request to clean temp file: ${event.filePath}');
+    await _radprocRepository.deleteTempFile(event.filePath);
+    // Optionally clear path from state if needed
+    if (state.tempVideoFilePath == event.filePath) {
+      emit(state.copyWith(clearVideoState: true)); // Clear path using helper
     }
   }
 
@@ -450,57 +374,28 @@ class HistoricPlotsBloc extends Bloc<HistoricPlotsEvent, HistoricPlotsState> {
         errorMessage: event.message,
         isPlaying: false,
         clearActiveJob: true,
-        clearVideoController: true,
-        isVideoControllerInitialized: false,
+        clearVideoState: true,
       ),
     );
   }
 
-  // Helper to delete temp file safely
-  Future<void> _deleteTempFile(String? filePath) async {
-    if (filePath == null) return;
-    try {
-      final file = File(filePath);
-      if (await file.exists()) {
-        await file.delete();
-        print('Deleted temporary video file: $filePath');
-      }
-    } catch (e) {
-      print('Error deleting temporary file $filePath: $e');
-    }
-  }
-
   // Updated cleanup helper
-  Future<void> _cleanupResources({bool keepVideoController = true}) async {
+  void _cleanupResources({bool keepVideoController = true}) {
+    // keepVideoController arg no longer needed
     _playbackTimer?.cancel();
     _playbackTimer = null;
     _jobMonitorSubscription?.cancel();
     _jobMonitorSubscription = null;
-
-    // Get controller and path *before* potentially clearing state
-    final controllerToDispose = state.videoPlayerController;
-    final pathToDelete = state.tempVideoFilePath;
-
-    if (!keepVideoController) {
-      // Dispose controller and delete associated temp file
-      await controllerToDispose?.dispose();
-      await _deleteTempFile(pathToDelete);
-      // Avoid emitting state directly from here if called during close()
-    }
   }
 
   @override
   Future<void> close() async {
-    // Make close async
     print('Closing HistoricPlotsBloc');
-    // Ensure cleanup happens before super.close()
-    final controller = state.videoPlayerController;
-    final path = state.tempVideoFilePath;
-    await _cleanupResources(
+    _cleanupResources(
       keepVideoController: false,
-    ); // Ensure video controller cleared
-    await controller?.dispose(); // Explicitly dispose here too just in case
-    await _deleteTempFile(path); // Delete temp file on close
+    ); // This now only cleans timer/subs
+    // Clean up any lingering temp file path from state on close
+    await _radprocRepository.deleteTempFile(state.tempVideoFilePath);
     return super.close();
   }
 }

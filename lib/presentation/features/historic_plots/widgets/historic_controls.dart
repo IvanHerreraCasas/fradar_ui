@@ -360,31 +360,6 @@ class _HistoricControlsState extends State<HistoricControls> {
                       : 'Generate Animation',
                 ),
               ),
-              const SizedBox(height: 10),
-
-              // Optional: Show active job status if monitoring
-              if (state.status == HistoricPlotsStatus.submittingJob ||
-                  state.status == HistoricPlotsStatus.monitoringJob)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Row(
-                    children: [
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          state.status == HistoricPlotsStatus.submittingJob
-                              ? 'Submitting Job...'
-                              : 'Monitoring Job: ${state.activeJob?.taskId.substring(0, 8) ?? '...'} - ${state.activeJob?.statusDetails ?? ''}',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
             ],
           ),
         );

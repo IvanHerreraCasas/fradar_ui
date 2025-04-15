@@ -50,6 +50,7 @@ dependencies:
   latlong2: ^0.9.1
   fl_chart: ^0.70.2
   bloc_concurrency: ^0.3.0
+  fvp: ^0.31.2
 
 dev_dependencies:
   flutter_test:
