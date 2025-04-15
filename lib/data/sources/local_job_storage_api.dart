@@ -50,6 +50,13 @@ class LocalJobStorageApi implements JobStorageApi {
     await _saveJobList(currentJobs);
   }
 
+  @override
+  Future<void> deleteJobs(List<String> taskIds) async {
+    final currentJobs = await loadJobs();
+    currentJobs.removeWhere((job) => taskIds.contains(job.taskId));
+    await _saveJobList(currentJobs);
+  }
+
    @override
   Future<void> clearAllJobs() async {
      await _plugin.remove(_kJobListKey);

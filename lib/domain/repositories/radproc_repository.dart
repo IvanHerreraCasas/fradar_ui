@@ -289,6 +289,8 @@ class RadprocRepository {
   Future<List<Job>> getPersistedJobs() => _jobStorageApi.loadJobs();
   Future<void> deleteJobRecord(String taskId) =>
       _jobStorageApi.deleteJob(taskId);
+  Future<void> deleteJobRecords(List<String> tasksIds) =>
+      _jobStorageApi.deleteJobs(tasksIds);
   Future<void> clearAllJobRecords() => _jobStorageApi.clearAllJobs();
 
   /// Submits an animation generation job to the backend.

@@ -11,6 +11,9 @@ abstract class JobStorageApi {
   /// Deletes a specific job record by its task ID.
   Future<void> deleteJob(String taskId);
 
+  /// Deletes multiple job records by their task IDs.
+  Future<void> deleteJobs(List<String> taskIds);
+
   /// Clears all persisted job records.
   Future<void> clearAllJobs();
 }

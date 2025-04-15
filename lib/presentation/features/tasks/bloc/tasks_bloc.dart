@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fradar_ui/domain/models/job.dart';
 import 'package:fradar_ui/domain/repositories/radproc_repository.dart';
@@ -101,7 +102,7 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     Emitter<TasksState> emit,
   ) async {
     final List<Job> toKeep = [];
-    final List<Future<void>> deleteFutures = [];
+    final List<String> toDelete = [];
     for (final job in state.tasks) {
       if (job.status == JobStatusEnum.pending ||
           job.status == JobStatusEnum.running ||
@@ -109,15 +110,13 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
         toKeep.add(job);
       } else {
         // Add deletion future without waiting here
-        deleteFutures.add(_radprocRepository.deleteJobRecord(job.taskId));
+        toDelete.add(job.taskId);
       }
     }
-    // Optimistic UI update
-    emit(state.copyWith(tasks: toKeep));
     // Wait for all deletions to complete in background
     try {
-      await Future.wait(deleteFutures);
-      print('Cleared ${deleteFutures.length} terminated tasks.');
+      await _radprocRepository.deleteJobRecords(toDelete);
+      emit(state.copyWith(tasks: toKeep));
     } catch (e) {
       print('Error during bulk task deletion: $e');
       // Optionally reload state on error
