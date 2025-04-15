@@ -16,8 +16,8 @@ class VariableSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<String> _variables =
         precipitation
-            ? const ['RATE', 'PRECIPITATION', 'DBZH', 'VRADH', 'ZDR', 'KDP', 'PHIDP', 'RHOHV', 'WRADH', 'QUAL']
-            : const ['RATE', 'DBZH', 'VRADH', 'ZDR', 'KDP', 'PHIDP', 'RHOHV', 'WRADH', 'QUAL'];
+            ? const ['RATE', 'PRECIPITATION', 'DBZH', 'VRADH', 'ZDR', 'KDP', ]
+            : const ['RATE', 'DBZH', 'VRADH', 'ZDR', 'KDP', ];
 
     return DropdownButtonFormField<String>(
       value: selectedVariable,
