@@ -1,5 +1,6 @@
 // lib/data/sources/local_job_storage_api.dart
 import 'dart:convert';
+import 'dart:developer';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fradar_ui/data/api/job_storage_api.dart';
 import 'package:fradar_ui/domain/models/job.dart';
@@ -21,7 +22,7 @@ class LocalJobStorageApi implements JobStorageApi {
           .map((jsonString) => Job.fromJson(jsonDecode(jsonString)))
           .toList();
     } catch (e) {
-      print('Error loading jobs from storage: $e');
+      log('Error loading jobs from storage: $e', name: 'LocalJobStorageApi');
       // If loading fails, maybe clear corrupted data? Or return empty.
       await clearAllJobs(); // Clear potentially corrupted data
       return [];
@@ -36,9 +37,7 @@ class LocalJobStorageApi implements JobStorageApi {
     if (index >= 0) {
       currentJobs[index] = job; // Update existing
     } else {
-      currentJobs.add(job); // Add new
-       // Optional: Limit the number of stored jobs?
-       // e.g., currentJobs.sort(...); if (currentJobs.length > 50) currentJobs.removeRange(50, currentJobs.length);
+      currentJobs.add(job); 
     }
     await _saveJobList(currentJobs);
   }
@@ -64,7 +63,6 @@ class LocalJobStorageApi implements JobStorageApi {
 
   // Helper to save the list back to shared_preferences
   Future<void> _saveJobList(List<Job> jobs) async {
-     // Sort jobs? e.g., by submission date descending
      jobs.sort((a, b) => (b.submittedAt ?? DateTime(0)).compareTo(a.submittedAt ?? DateTime(0)));
      final List<String> jobListJson = jobs
          .map((job) => jsonEncode(job.toJson())) // Convert each job to JSON string

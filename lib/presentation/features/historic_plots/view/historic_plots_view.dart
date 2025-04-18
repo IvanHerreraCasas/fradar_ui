@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fradar_ui/presentation/features/historic_plots/bloc/historic_plots_bloc.dart';
 import 'package:fradar_ui/presentation/features/historic_plots/bloc/historic_plots_state.dart';
-// Import widgets (we'll create these next)
 import 'package:fradar_ui/presentation/features/historic_plots/widgets/historic_controls.dart';
 import 'package:fradar_ui/presentation/features/historic_plots/widgets/historic_display.dart';
 
@@ -16,7 +15,8 @@ class HistoricPlotsView extends StatelessWidget {
       // Use a listener for snackbars (errors, maybe download readiness)
       body: BlocListener<HistoricPlotsBloc, HistoricPlotsState>(
         listener: (context, state) {
-          if (state.status == HistoricPlotsStatus.error && state.errorMessage != null) {
+          if (state.status == HistoricPlotsStatus.error &&
+              state.errorMessage != null) {
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
               ..showSnackBar(
@@ -25,8 +25,9 @@ class HistoricPlotsView extends StatelessWidget {
                   backgroundColor: Theme.of(context).colorScheme.error,
                 ),
               );
-          } else if (state.status == HistoricPlotsStatus.animationReadyToDownload) {
-             ScaffoldMessenger.of(context)
+          } else if (state.status ==
+              HistoricPlotsStatus.animationReadyToDownload) {
+            ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
               ..showSnackBar(
                 const SnackBar(content: Text('Animation ready to download.')),
@@ -45,9 +46,7 @@ class HistoricPlotsView extends StatelessWidget {
             const VerticalDivider(width: 1, thickness: 1),
 
             // --- Display Pane (Right) ---
-            const Expanded(
-              child: HistoricDisplay(),
-            ),
+            const Expanded(child: HistoricDisplay()),
           ],
         ),
       ),

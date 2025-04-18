@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/rendering.dart';
+import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fradar_ui/domain/models/job.dart';
 import 'package:fradar_ui/domain/repositories/radproc_repository.dart';
@@ -32,13 +32,14 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     _jobUpdateSubscription?.cancel(); // Cancel previous if any
     _jobUpdateSubscription = _radprocRepository.jobUpdates.listen(
       (job) {
-        print(
+        log(
           'TasksBloc received job update: ${job.taskId} Status: ${job.status.name}',
+          name: "TasksBloc",
         );
         add(JobUpdateReceived(job)); // Add internal event
       },
       onError: (error) {
-        print('TasksBloc: Error on job update stream: $error');
+        log('TasksBloc: Error on job update stream: $error', name: "TasksBloc");
         // Optionally update state with stream error message
       },
     );
@@ -58,8 +59,9 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
                 JobStatusEnum.running || // If backend distinguishes running
             job.status == JobStatusEnum.unknown) // Monitor unknown just in case
         {
-          print(
+          log(
             'TasksBloc: Restarting monitoring for pending/unknown job ${job.taskId}',
+            name: "TasksBloc",
           );
           // Call monitorJob to kick off polling. Updates will come via the
           // central jobUpdates stream which this bloc is already listening to.
@@ -118,7 +120,7 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
       await _radprocRepository.deleteJobRecords(toDelete);
       emit(state.copyWith(tasks: toKeep));
     } catch (e) {
-      print('Error during bulk task deletion: $e');
+      log('Error during bulk task deletion: $e', name: "TasksBloc");
       // Optionally reload state on error
       add(LoadTasks());
     }
@@ -149,8 +151,9 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
 
     // Prevent download if job isn't successful or already processing
     if (job.status != JobStatusEnum.success || state.processingTaskId != null) {
-      print(
+      log(
         'Download requested for non-successful or already processing job: ${job.taskId}',
+        name: "TasksBloc",
       );
       return;
     }
@@ -174,11 +177,14 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
           throw Exception('Cannot download result for unknown job type.');
       }
       // If download call completes without error (user might still cancel dialog)
-      print('Repository download method completed for ${job.taskId}');
+      log(
+        'Repository download method completed for ${job.taskId}',
+        name: "TasksBloc",
+      );
       // Optionally emit a success state or message here if needed
       // For now, just clear processing state
     } catch (e) {
-      print('Download failed in Bloc for ${job.taskId}: $e');
+      log('Download failed in Bloc for ${job.taskId}: $e', name: "TasksBloc");
       // Dispatch internal error to potentially show snackbar via listener
       add(
         ErrorOccurredInternal(
@@ -207,7 +213,6 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
 
   @override
   Future<void> close() {
-    print('Closing TasksBloc and cancelling job update subscription.');
     _jobUpdateSubscription?.cancel();
     return super.close();
   }

@@ -1,8 +1,8 @@
 // lib/presentation/features/historic_plots/widgets/historic_controls.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // For input formatters
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:intl/intl.dart';
 import 'package:fradar_ui/presentation/features/historic_plots/bloc/historic_plots_bloc.dart';
 import 'package:fradar_ui/presentation/features/historic_plots/bloc/historic_plots_event.dart';
 import 'package:fradar_ui/presentation/features/historic_plots/bloc/historic_plots_state.dart';
@@ -37,7 +37,6 @@ class _HistoricControlsState extends State<HistoricControls> {
     HistoricPlotsState currentState,
   ) async {
     final bloc = context.read<HistoricPlotsBloc>();
-    final now = DateTime.now();
     final firstAllowedDate = DateTime(2020);
 
     // --- Pick Start Date ---
@@ -183,14 +182,18 @@ class _HistoricControlsState extends State<HistoricControls> {
         // This could be more sophisticated to avoid disrupting user input
         final currentRegion = state.region;
         if (currentRegion != null && currentRegion.length == 4) {
-          if (currentRegion[0].toString() != _minLonController.text)
+          if (currentRegion[0].toString() != _minLonController.text) {
             _minLonController.text = currentRegion[0].toString();
-          if (currentRegion[1].toString() != _maxLonController.text)
+          }
+          if (currentRegion[1].toString() != _maxLonController.text) {
             _maxLonController.text = currentRegion[1].toString();
-          if (currentRegion[2].toString() != _minLatController.text)
+          }
+          if (currentRegion[2].toString() != _minLatController.text) {
             _minLatController.text = currentRegion[2].toString();
-          if (currentRegion[3].toString() != _maxLatController.text)
+          }
+          if (currentRegion[3].toString() != _maxLatController.text) {
             _maxLatController.text = currentRegion[3].toString();
+          }
         } else {
           // Clear fields if region is null in state and fields are not empty
           if (_minLonController.text.isNotEmpty) _minLonController.clear();
@@ -216,8 +219,9 @@ class _HistoricControlsState extends State<HistoricControls> {
                     interactionDisabled
                         ? null
                         : (value) {
-                          if (value != null)
+                          if (value != null) {
                             bloc.add(ParametersChanged(variable: value));
+                          }
                         },
               ),
               const SizedBox(height: 10),
@@ -227,7 +231,7 @@ class _HistoricControlsState extends State<HistoricControls> {
                 enabled: !interactionDisabled,
                 onSelected: (value) {
                   bloc.add(ParametersChanged(elevation: value));
-                  // Optionally unfocus after selection
+                  // unfocus after selection
                   FocusScope.of(context).unfocus();
                 },
               ),

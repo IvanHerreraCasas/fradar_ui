@@ -1,5 +1,6 @@
 // lib/presentation/features/historic_plots/bloc/historic_plots_bloc.dart
 import 'dart:async';
+import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fradar_ui/domain/models/job.dart';
 import 'package:fradar_ui/domain/repositories/radproc_repository.dart';
@@ -66,7 +67,7 @@ class HistoricPlotsBloc extends Bloc<HistoricPlotsEvent, HistoricPlotsState> {
         clearError: true,
       ),
     );
-    _cleanupResources(keepVideoController: false); // Dispose video/timers/subs
+    _cleanupResources(keepVideoController: false);
   }
 
   Future<void> _onFetchFrames(
@@ -265,7 +266,10 @@ class HistoricPlotsBloc extends Bloc<HistoricPlotsEvent, HistoricPlotsState> {
             onError:
                 (error) => add(ErrorOccurred('Job monitoring failed: $error')),
             onDone:
-                () => print('Job monitoring stream closed for ${job.taskId}'),
+                () => log(
+                  'Job monitoring stream closed for ${job.taskId}',
+                  name: "HistoricPlotsBloc",
+                ),
             cancelOnError: true,
           );
     } catch (e) {
@@ -334,7 +338,10 @@ class HistoricPlotsBloc extends Bloc<HistoricPlotsEvent, HistoricPlotsState> {
     VideoFileReadyToClean event,
     Emitter<HistoricPlotsState> emit,
   ) async {
-    print('Bloc received request to clean temp file: ${event.filePath}');
+    log(
+      'Bloc received request to clean temp file: ${event.filePath}',
+      name: "HistoricPlotsBloc",
+    );
     await _radprocRepository.deleteTempFile(event.filePath);
     // Optionally clear path from state if needed
     if (state.tempVideoFilePath == event.filePath) {
@@ -350,17 +357,23 @@ class HistoricPlotsBloc extends Bloc<HistoricPlotsEvent, HistoricPlotsState> {
         state.activeJob!.status == JobStatusEnum.success) {
       try {
         // Show some visual feedback (e.g., snackbar, loading indicator?)
-        print('Download started...'); // Placeholder
+        log('Download started...', name: "HistoricPlotsBloc"); // Placeholder
         await _radprocRepository.downloadAnimationResult(state.activeJob!);
-        print('Download prompt finished.'); // Placeholder
+        log(
+          'Download prompt finished.',
+          name: "HistoricPlotsBloc",
+        ); // Placeholder
         // Show success SnackBar via BlocListener in UI
       } catch (e) {
-        print('Download failed: $e');
+        log('Download failed: $e', name: "HistoricPlotsBloc");
         // Show error SnackBar via BlocListener in UI
         add(ErrorOccurred('Download failed: $e'));
       }
     } else {
-      print('Download requested but no successful job found.');
+      log(
+        'Download requested but no successful job found.',
+        name: "HistoricPlotsBloc",
+      );
       add(ErrorOccurred('No completed animation available to download.'));
     }
   }
@@ -390,7 +403,6 @@ class HistoricPlotsBloc extends Bloc<HistoricPlotsEvent, HistoricPlotsState> {
 
   @override
   Future<void> close() async {
-    print('Closing HistoricPlotsBloc');
     _cleanupResources(
       keepVideoController: false,
     ); // This now only cleans timer/subs

@@ -1,6 +1,7 @@
 // lib/domain/repositories/radproc_repository.dart
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:collection/collection.dart';
@@ -25,18 +26,18 @@ class RadprocRepository {
     required RadprocApi radprocApi,
     required SettingsApi settingsApi,
     required JobStorageApi jobStorageApi,
-    required Dio dioClient, // Add Dio client
-    required SseService sseService, // Add SseService
+    required Dio dioClient,
+    required SseService sseService,
   }) : _radprocApi = radprocApi,
        _settingsApi = settingsApi,
        _jobStorageApi = jobStorageApi,
        _dioClient = dioClient,
-       _sseService = sseService; // Store Dio client
+       _sseService = sseService;
 
   final RadprocApi _radprocApi;
   final SettingsApi _settingsApi;
   final JobStorageApi _jobStorageApi;
-  final Dio _dioClient; // Store Dio client instance
+  final Dio _dioClient;
   final SseService _sseService;
 
   // Central StreamController for broadcasting job updates
@@ -54,7 +55,7 @@ class RadprocRepository {
     await _settingsApi.saveApiBaseUrl(url);
     // Update the Dio client's base URL immediately after saving
     _dioClient.options.baseUrl = url;
-    print('Dio base URL updated to: $url'); // For debugging
+    log('Dio base URL updated to: $url', name: "RadprocRepository");
   }
 
   /// Fetches the API status and converts it to an [ApiStatus] domain model.
@@ -65,17 +66,12 @@ class RadprocRepository {
     } on RadprocApiException {
       // Re-throw API specific exceptions if needed, or handle them
       rethrow;
-    } on FormatException catch (e) {
-      // Handle parsing errors from ApiStatus.fromJson
-      print('Error parsing ApiStatus: $e');
-      // Return a specific error status or rethrow as a domain error
+    } on FormatException catch (_) {
       return const ApiStatus(
         status: 'error',
         message: 'Failed to parse API status response.',
       );
     } catch (e) {
-      // Catch-all for unexpected errors
-      print('Unexpected error fetching API status: $e');
       return const ApiStatus(
         status: 'error',
         message: 'An unexpected error occurred.',
@@ -93,11 +89,9 @@ class RadprocRepository {
       return points;
     } on RadprocApiException {
       rethrow; // Let UI handle API errors
-    } on FormatException catch (e) {
-      print('Error parsing Points list: $e');
+    } on FormatException catch (_) {
       return []; // Return empty list on parsing error
     } catch (e) {
-      print('Unexpected error fetching points: $e');
       return []; // Return empty list on unexpected error
     }
   }
@@ -110,7 +104,6 @@ class RadprocRepository {
     } on RadprocApiException {
       rethrow; // Propagate API errors
     } catch (e) {
-      print('Unexpected error fetching realtime plot in repo: $e');
       throw Exception(
         'Could not fetch realtime plot.',
       ); // Throw generic domain error
@@ -159,11 +152,9 @@ class RadprocRepository {
       return frames;
     } on RadprocApiException {
       rethrow;
-    } on FormatException catch (e) {
-      print('Error parsing Frames list: $e');
+    } on FormatException catch (_) {
       return [];
     } catch (e) {
-      print('Unexpected error fetching frames: $e');
       return [];
     }
   }
@@ -183,7 +174,6 @@ class RadprocRepository {
     } on RadprocApiException {
       rethrow;
     } catch (e) {
-      print('Unexpected error fetching historical plot in repo: $e');
       throw Exception('Could not fetch historical plot.');
     }
   }
@@ -199,31 +189,27 @@ class RadprocRepository {
 
     Future<void> checkStatus() async {
       if (controller.isClosed) return; // Stop if controller is closed
-      print('[MonitorJob ${currentJob.taskId}] Polling...'); // Identify job
+      log(
+        '[MonitorJob ${currentJob.taskId}] Polling...',
+        name: "RadprocRepository",
+      ); // Identify job
       try {
         final statusMap = await _radprocApi.getJobStatus(currentJob.taskId);
-        print(
+        log(
           '[MonitorJob ${currentJob.taskId}] Received API Status: $statusMap',
+          name: "RadprocRepository",
         ); // See raw response
 
         final previousStatusEnum = currentJob.status; // Store before update
         currentJob = currentJob.updateFromApiStatus(
           statusMap,
         ); // Update local state
-        print(
-          '[MonitorJob ${currentJob.taskId}] Parsed Status Enum: ${currentJob.status.name}',
-        ); // Verify parsing
-        print(
-          '[MonitorJob ${currentJob.taskId}] Parsed Status Details: ${currentJob.statusDetails}',
-        );
-        print(
-          '[MonitorJob ${currentJob.taskId}] Parsed Error: ${currentJob.errorMessage}',
-        );
 
         // Save and Broadcast
         await _jobStorageApi.saveJob(currentJob);
-        print(
+        log(
           '[MonitorJob ${currentJob.taskId}] Broadcasting Update: ${currentJob.status.name}',
+          name: "RadprocRepository",
         );
         _jobUpdateController.add(currentJob);
         controller.add(currentJob); // Also emit on local stream
@@ -233,18 +219,25 @@ class RadprocRepository {
             currentJob.status == JobStatusEnum.success ||
             currentJob.status == JobStatusEnum.failure ||
             currentJob.status == JobStatusEnum.revoked;
-        print(
+        log(
           '[MonitorJob ${currentJob.taskId}] Should Stop Polling: $shouldStop (Previous: ${previousStatusEnum.name}, Current: ${currentJob.status.name})',
+          name: "RadprocRepository",
         );
 
         if (shouldStop && currentJob.status != previousStatusEnum) {
           // Stop only on change to final state
           timer?.cancel();
           controller.close();
-          print('[MonitorJob ${currentJob.taskId}] Polling Stopped.');
+          log(
+            '[MonitorJob ${currentJob.taskId}] Polling Stopped.',
+            name: "RadprocRepository",
+          );
         }
       } on RadprocApiException catch (e) {
-        print('Error polling job ${currentJob.taskId}: $e');
+        log(
+          'Error polling job ${currentJob.taskId}: $e',
+          name: "RadprocRepository",
+        );
         // Optionally emit an error state or just stop polling
         currentJob = currentJob.copyWith(
           status: JobStatusEnum.unknown,
@@ -255,7 +248,10 @@ class RadprocRepository {
         timer?.cancel();
         controller.close();
       } catch (e) {
-        print('Unexpected error polling job ${currentJob.taskId}: $e');
+        log(
+          'Unexpected error polling job ${currentJob.taskId}: $e',
+          name: "RadprocRepository",
+        );
         currentJob = currentJob.copyWith(
           status: JobStatusEnum.unknown,
           errorMessage: e.toString(),
@@ -278,7 +274,10 @@ class RadprocRepository {
 
     // Cleanup: Cancel timer when stream subscription is cancelled
     controller.onCancel = () {
-      print('Cancelling job monitor for ${currentJob.taskId}');
+      log(
+        'Cancelling job monitor for ${currentJob.taskId}',
+        name: "RadprocRepository",
+      );
       timer?.cancel();
     };
 
@@ -338,7 +337,6 @@ class RadprocRepository {
     } on RadprocApiException {
       rethrow;
     } catch (e) {
-      print('Unexpected error submitting animation job in repo: $e');
       throw Exception('Could not submit animation job.');
     }
   }
@@ -350,7 +348,6 @@ class RadprocRepository {
     } on RadprocApiException {
       rethrow;
     } catch (e) {
-      print('Unexpected error fetching animation result in repo: $e');
       throw Exception('Could not fetch animation result.');
     }
   }
@@ -367,14 +364,15 @@ class RadprocRepository {
           '${tempDir.path}/temp_video_${taskId}_${DateTime.now().millisecondsSinceEpoch}.mp4';
       final tempFile = File(tempFilePath);
       await tempFile.writeAsBytes(videoBytes, flush: true);
-      print('Video bytes saved to temporary file: $tempFilePath');
+      log(
+        'Video bytes saved to temporary file: $tempFilePath',
+        name: "RadprocRepository",
+      );
       return tempFilePath;
     } catch (e) {
-      // Clean up partial file if creation failed mid-way
       if (tempFilePath != null) {
         await deleteTempFile(tempFilePath);
       }
-      print('Error preparing video file in repo: $e');
       throw Exception('Failed to prepare video file: $e');
     }
   }
@@ -385,11 +383,15 @@ class RadprocRepository {
         job.jobType != JobType.animation) {
       throw Exception('Job not successful or not an animation job.');
     }
-    print('Attempting to download result for job ${job.taskId}');
+    log(
+      'Attempting to download result for job ${job.taskId}',
+      name: "RadprocRepository",
+    );
     try {
       final fileBytes = await fetchAnimationResult(job.taskId);
-      print(
+      log(
         'Fetched ${fileBytes.length} bytes for job ${job.taskId}. Prompting user to save via FilePicker...',
+        name: "RadprocRepository",
       );
 
       // --- Use file_picker to prompt user for LOCAL save location ---
@@ -423,18 +425,22 @@ class RadprocRepository {
 
       if (outputFile == null) {
         // User cancelled the picker
-        print('File save cancelled by user for job ${job.taskId}.');
-        // Optionally throw an exception or return a specific status
+        log(
+          'File save cancelled by user for job ${job.taskId}.',
+          name: "RadprocRepository",
+        );
         return; // Exit the function gracefully
       }
 
       // On desktop/mobile, saveFile with bytes writes the file automatically.
       // The returned path is the confirmation.
-      print('File successfully saved to: $outputFile');
-      // Optionally, you could perform actions with the outputFile path here if needed
+      log('File successfully saved to: $outputFile', name: "RadprocRepository");
     } catch (e) {
       // Catch errors from fetchAnimationResult OR FilePicker
-      print('Error during animation download/save process: $e');
+      log(
+        'Error during animation download/save process: $e',
+        name: "RadprocRepository",
+      );
       // Rethrow a domain-level exception
       throw Exception('Failed to download or save animation result.');
     }
@@ -469,7 +475,6 @@ class RadprocRepository {
       await _jobStorageApi.saveJob(initialJob);
       return initialJob;
     } catch (e) {
-      /* ... */
       rethrow;
     } // Rethrow specific or generic
   }
@@ -492,7 +497,10 @@ class RadprocRepository {
       );
 
       if (rawData is List) {
-        print('Parsing JSON for variable: $variableName');
+        log(
+          'Parsing JSON for variable: $variableName',
+          name: "RadprocRepository",
+        );
         // Parsing now happens HERE
         return rawData
             .map(
@@ -508,8 +516,9 @@ class RadprocRepository {
         );
       }
     } catch (e) {
-      print(
+      log(
         'Error fetching/parsing timeseries JSON data in repo for $variableName: $e',
+        name: "RadprocRepository",
       );
       rethrow;
     }
@@ -521,7 +530,10 @@ class RadprocRepository {
         job.jobType != JobType.timeseries) {
       throw Exception('Job not successful or not a timeseries job.');
     }
-    print('Attempting to download timeseries result for job ${job.taskId}');
+    log(
+      'Attempting to download timeseries result for job ${job.taskId}',
+      name: "RadprocRepository",
+    );
     try {
       // Fetch as CSV string
       final csvData = await _fetchTimeseriesCsvString(
@@ -529,8 +541,9 @@ class RadprocRepository {
         job.parameters['startDt'],
         job.parameters['endDt'],
       );
-      print(
+      log(
         'Fetched ${csvData.length} chars of CSV data for job ${job.taskId}. Prompting user to save...',
+        name: "RadprocRepository",
       );
 
       final suggestedFilename =
@@ -545,9 +558,15 @@ class RadprocRepository {
         type: FileType.custom,
         allowedExtensions: ['csv'],
       );
-      print('File save dialog prompted for job ${job.taskId}');
+      log(
+        'File save dialog prompted for job ${job.taskId}',
+        name: "RadprocRepository",
+      );
     } catch (e) {
-      print('Error during timeseries download/save process: $e');
+      log(
+        'Error during timeseries download/save process: $e',
+        name: "RadprocRepository",
+      );
       throw Exception('Failed to download or save timeseries result.');
     }
   }
@@ -583,7 +602,6 @@ class RadprocRepository {
       await _jobStorageApi.saveJob(initialJob);
       return initialJob;
     } catch (e) {
-      /* ... */
       rethrow;
     }
   }
@@ -605,8 +623,9 @@ class RadprocRepository {
               .toList();
 
       if (cleanedLines.isEmpty) {
-        print(
+        log(
           'Accumulation CSV for $taskId contains no data after removing comments.',
+          name: "RadprocRepository",
         );
         return []; // No header or data found
       }
@@ -636,7 +655,10 @@ class RadprocRepository {
         );
 
         if (headerIndex != -1 && valueIndex != -1) {
-          print('Parsing accumulation CSV with headers: ${csvTable[0]}');
+          log(
+            'Parsing accumulation CSV with headers: ${csvTable[0]}',
+            name: "RadprocRepository",
+          );
           return csvTable
               .skip(1)
               .map((row) {
@@ -648,13 +670,14 @@ class RadprocRepository {
                       value: (row[valueIndex] as num? ?? double.nan).toDouble(),
                     );
                   } else {
-                    print(
+                    log(
                       "Skipping malformed row (length ${row.length}): $row",
+                      name: "RadprocRepository",
                     );
                     return null;
                   }
                 } catch (e) {
-                  print("Error parsing row $row: $e");
+                  log("Error parsing row $row: $e", name: "RadprocRepository");
                   return null; // Skip bad rows
                 }
               })
@@ -666,12 +689,16 @@ class RadprocRepository {
           );
         }
       } else {
-        print('Accumulation CSV for $taskId has no data rows after header.');
+        log(
+          'Accumulation CSV for $taskId has no data rows after header.',
+          name: "RadprocRepository",
+        );
         return []; // Return empty list if only header exists
       }
     } catch (e) {
-      print(
+      log(
         'Error fetching/parsing accumulation data in repo for task $taskId: $e',
+        name: "RadprocRepository",
       );
       rethrow; // Propagate error
     }
@@ -683,13 +710,17 @@ class RadprocRepository {
         job.jobType != JobType.accumulation) {
       throw Exception('Job not successful or not an accumulation job.');
     }
-    print('Attempting to download accumulation result for job ${job.taskId}');
+    log(
+      'Attempting to download accumulation result for job ${job.taskId}',
+      name: "RadprocRepository",
+    );
     try {
       final csvData = await _fetchAccumulationCsvString(
         job.taskId,
       ); // Fetch raw CSV
-      print(
+      log(
         'Fetched ${csvData.length} chars of CSV data for job ${job.taskId}. Prompting user to save...',
+        name: "RadprocRepository",
       );
 
       final suggestedFilename =
@@ -702,9 +733,15 @@ class RadprocRepository {
         type: FileType.custom,
         allowedExtensions: ['csv'],
       );
-      print('File save dialog prompted for job ${job.taskId}');
+      log(
+        'File save dialog prompted for job ${job.taskId}',
+        name: "RadprocRepository",
+      );
     } catch (e) {
-      print('Error during accumulation download/save process: $e');
+      log(
+        'Error during accumulation download/save process: $e',
+        name: "RadprocRepository",
+      );
       throw Exception('Failed to download or save accumulation result.');
     }
   }
@@ -752,17 +789,26 @@ class RadprocRepository {
       final file = File(filePath);
       if (await file.exists()) {
         await file.delete();
-        print('Deleted temporary video file: $filePath');
+        log(
+          'Deleted temporary video file: $filePath',
+          name: "RadprocRepository",
+        );
       }
     } catch (e) {
-      print('Error deleting temporary file $filePath: $e');
+      log(
+        'Error deleting temporary file $filePath: $e',
+        name: "RadprocRepository",
+      );
     }
   }
 
   // Dispose SSE service when repository is disposed (if repository lifecycle is managed)
   // This might happen in main.dart or higher up depending on setup
   void dispose() {
-    print('Disposing Repository and closing job update stream.');
+    log(
+      'Disposing Repository and closing job update stream.',
+      name: "RadprocRepository",
+    );
     _jobUpdateController.close();
     _sseService.dispose();
   }

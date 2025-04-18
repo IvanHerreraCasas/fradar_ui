@@ -18,8 +18,6 @@ class Point extends Equatable {
   final double elevation; // The default elevation associated with the point
   final String description;
 
-  /// Factory constructor to create Point from a JSON map (Map<String, dynamic>)
-  /// returned by the RadprocApi.
   factory Point.fromJson(Map<String, dynamic> json) {
      // Add type checking and default values or throw error for robustness
      try {
@@ -32,10 +30,6 @@ class Point extends Equatable {
           description: json['description'] as String? ?? '',
         );
      } catch (e) {
-         // Log the error and the problematic JSON if possible
-         print('Error parsing Point JSON: $e');
-         print('Problematic JSON: $json');
-         // Re-throw or return a default Point based on error handling strategy
          throw FormatException('Invalid JSON format for Point: $e');
      }
   }

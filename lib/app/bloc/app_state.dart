@@ -6,9 +6,7 @@ class AppState extends Equatable {
   final int selectedIndex;
 
   AppState copyWith({int? selectedIndex}) {
-    return AppState(
-      selectedIndex: selectedIndex ?? this.selectedIndex,
-    );
+    return AppState(selectedIndex: selectedIndex ?? this.selectedIndex);
   }
 
   @override

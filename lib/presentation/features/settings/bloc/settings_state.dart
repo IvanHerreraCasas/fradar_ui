@@ -1,6 +1,14 @@
 import 'package:equatable/equatable.dart';
 
-enum SettingsStatus { initial, loading, loaded, editing, saving, success, failure }
+enum SettingsStatus {
+  initial,
+  loading,
+  loaded,
+  editing,
+  saving,
+  success,
+  failure,
+}
 
 class SettingsState extends Equatable {
   const SettingsState({

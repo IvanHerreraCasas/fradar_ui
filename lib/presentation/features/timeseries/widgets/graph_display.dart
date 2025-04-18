@@ -1,7 +1,7 @@
 // lib/presentation/features/timeseries/widgets/graph_display.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fl_chart/fl_chart.dart'; // Import fl_chart
+import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:fradar_ui/domain/models/timeseries_datapoint.dart';
 import 'package:fradar_ui/presentation/features/timeseries/bloc/timeseries_bloc.dart';
@@ -213,8 +213,6 @@ class GraphDisplay extends StatelessWidget {
             dp.value.isNaN ? 0 : dp.value,
           );
         }).toList();
-
-    
 
     return LineChart(
       LineChartData(

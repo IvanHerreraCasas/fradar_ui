@@ -2,7 +2,6 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fradar_ui/domain/models/point.dart'; // Import Point model
 import 'package:fradar_ui/presentation/features/timeseries/bloc/timeseries_bloc.dart';
 import 'package:fradar_ui/presentation/features/timeseries/bloc/timeseries_event.dart';
 import 'package:fradar_ui/presentation/features/timeseries/bloc/timeseries_state.dart';
@@ -31,7 +30,6 @@ class _TimeseriesControlsState extends State<TimeseriesControls> {
     TimeseriesState currentState,
   ) async {
     final bloc = context.read<TimeseriesBloc>();
-    final now = DateTime.now();
     final firstAllowedDate = DateTime(2020);
 
     final DateTime? startDate = await showDatePicker(
@@ -145,10 +143,12 @@ class _TimeseriesControlsState extends State<TimeseriesControls> {
           state.startDt.toLocal(),
         );
         final formattedEnd = _displayFormatter.format(state.endDt.toLocal());
-        if (_startDateController.text != formattedStart)
+        if (_startDateController.text != formattedStart) {
           _startDateController.text = formattedStart;
-        if (_endDateController.text != formattedEnd)
+        }
+        if (_endDateController.text != formattedEnd) {
           _endDateController.text = formattedEnd;
+        }
       },
       child: BlocBuilder<TimeseriesBloc, TimeseriesState>(
         // buildWhen can be optimized further if needed
@@ -172,7 +172,6 @@ class _TimeseriesControlsState extends State<TimeseriesControls> {
             );
           }
 
-          
           final currentSelectedVariable = state.selectedVariable;
 
           return Scaffold(
@@ -196,7 +195,7 @@ class _TimeseriesControlsState extends State<TimeseriesControls> {
                           onChanged:
                               interactionDisabled
                                   ? null
-                                  : (value) {
+                                  : (String? value) {
                                     if (value != null) {
                                       bloc.add(VariableSelected(value));
                                     }
@@ -286,10 +285,6 @@ class _TimeseriesControlsState extends State<TimeseriesControls> {
                           // Use spread operator
                           final bool isSelected = state.selectedPointNames
                               .contains(point.name);
-                          final bool isLoading =
-                              state.pointLoadingStatus[point.name] ?? false;
-                          final String? errorMsg =
-                              state.pointErrorStatus[point.name];
                           return CheckboxListTile(
                             title: Text(point.name),
                             subtitle: Text(
@@ -315,7 +310,7 @@ class _TimeseriesControlsState extends State<TimeseriesControls> {
                             controlAffinity: ListTileControlAffinity.leading,
                             dense: true,
                           );
-                        }).toList(), // Convert iterable to list
+                        }), // Convert iterable to list
 
                         const SizedBox(height: 20),
                         // "Load Graph Data" button (moved here?) - Or keep in GraphDisplay? Let's keep it in GraphDisplay for now.
@@ -326,6 +321,4 @@ class _TimeseriesControlsState extends State<TimeseriesControls> {
       ),
     );
   }
-
-
 }

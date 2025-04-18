@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fradar_ui/presentation/features/historic_plots/bloc/historic_plots_bloc.dart';
 import 'package:fradar_ui/presentation/features/historic_plots/bloc/historic_plots_state.dart';
-// Import the specific display widgets (create next)
 import 'package:fradar_ui/presentation/features/historic_plots/widgets/image_carousel.dart';
 import 'package:fradar_ui/presentation/features/historic_plots/widgets/video_display.dart';
 

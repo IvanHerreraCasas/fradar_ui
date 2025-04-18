@@ -59,7 +59,6 @@ class HttpRadprocApi implements RadprocApi {
       final response = await _dioClient.get(_pointsPath);
 
       if (response.statusCode == 200 && response.data is List) {
-        // Ensure all items in the list are maps
         return List<Map<String, dynamic>>.from(
           (response.data as List).cast<Map<String, dynamic>>(),
         );
@@ -198,13 +197,9 @@ class HttpRadprocApi implements RadprocApi {
       'elevation': elevation,
       'start_dt': _isoFormatter.format(startDt.toUtc()),
       'end_dt': _isoFormatter.format(endDt.toUtc()),
-      'output_format': outputFormat, // Use the new required field
+      'output_format': outputFormat,
       // Include extent only if provided and valid (4 elements)
       if (extent != null && extent.length == 4) 'extent': extent,
-      // API guide implies output_file is handled server-side or optional?
-      // If needed: 'output_file': '/path/on/server/...'
-      // If API requires *some* path, maybe generate a temporary one? Needs clarification.
-      // For now, omitting based on README/API Guide interpretation.
     };
     try {
       final response = await _dioClient.post(_animationJobPath, data: body);
@@ -241,7 +236,7 @@ class HttpRadprocApi implements RadprocApi {
         );
       }
     } on DioException catch (e) {
-      // Note: API guide says unknown task ID might return PENDING status, not 404 here
+      // Note: task ID might return PENDING status, not 404 here
       throw RadprocApiException(
         'API Error getting job status: ${e.message}',
         e,
@@ -259,13 +254,9 @@ class HttpRadprocApi implements RadprocApi {
         path,
         options: Options(responseType: ResponseType.bytes),
       );
-      // API Guide implies 200 OK on success
       if (response.statusCode == 200 && response.data != null) {
         return Uint8List.fromList(response.data!);
       } else {
-        // This case might indicate pending (202) or failed (400) based on API guide,
-        // which should ideally be checked *before* calling this via getJobStatus.
-        // Throwing a generic error here if not 200.
         throw RadprocApiException(
           'Failed to get animation result: Unexpected status ${response.statusCode}',
         );
@@ -309,13 +300,11 @@ class HttpRadprocApi implements RadprocApi {
         );
       }
     } on DioException catch (e) {
-      /* ... */
       throw RadprocApiException(
         'API Error submitting timeseries job: ${e.message}',
         e,
       );
     } catch (e) {
-      /* ... */
       throw RadprocApiException(
         'Unexpected error submitting timeseries job: $e',
       );
@@ -347,13 +336,11 @@ class HttpRadprocApi implements RadprocApi {
         );
       }
     } on DioException catch (e) {
-      /* ... */
       throw RadprocApiException(
         'API Error submitting accumulation job: ${e.message}',
         e,
       );
     } catch (e) {
-      /* ... */
       throw RadprocApiException(
         'Unexpected error submitting accumulation job: $e',
       );
@@ -372,7 +359,7 @@ class HttpRadprocApi implements RadprocApi {
       'format': format,
       'start_dt': _isoFormatter.format(startDt.toUtc()),
       'end_dt': _isoFormatter.format(endDt.toUtc()),
-    }; // Add format parameter
+    };
     try {
       // Request raw response to handle JSON/CSV difference potentially
       final response = await _dioClient.get<dynamic>(
@@ -391,12 +378,15 @@ class HttpRadprocApi implements RadprocApi {
       }
     } on DioException catch (e) {
       // Handle 202 (Pending), 400 (Failed), 404 (Not Found) based on status code if needed
-      if (e.response?.statusCode == 202)
+      if (e.response?.statusCode == 202) {
         throw RadprocApiException('Job still pending', e);
-      if (e.response?.statusCode == 400)
+      }
+      if (e.response?.statusCode == 400) {
         throw RadprocApiException('Job failed or revoked', e);
-      if (e.response?.statusCode == 404)
+      }
+      if (e.response?.statusCode == 404) {
         throw RadprocApiException('Timeseries result not found', e);
+      }
       throw RadprocApiException(
         'API Error getting timeseries result: ${e.message}',
         e,

@@ -1,5 +1,5 @@
 // lib/data/api/radproc_api.dart
-import 'dart:typed_data'; // Import for Uint8List
+import 'dart:typed_data';
 
 abstract class RadprocApi {
   /// Gets the basic API status.

@@ -2,7 +2,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:fradar_ui/domain/models/plot_frame.dart';
 import 'package:fradar_ui/domain/models/job.dart';
-import 'package:video_player/video_player.dart'; // Import video player
 import 'dart:typed_data';
 
 enum HistoricPlotsStatus {

@@ -7,7 +7,7 @@ class RealtimePlotState extends Equatable {
   const RealtimePlotState({
     this.status = RealtimePlotStatus.initial,
     this.selectedVariable = 'RATE', // Default variable
-    this.selectedElevation = 2.5,  // Default elevation
+    this.selectedElevation = 2.5, // Default elevation
     this.plotImageData,
     this.errorMessage,
   });
@@ -39,10 +39,10 @@ class RealtimePlotState extends Equatable {
 
   @override
   List<Object?> get props => [
-        status,
-        selectedVariable,
-        selectedElevation,
-        plotImageData,
-        errorMessage,
-      ];
+    status,
+    selectedVariable,
+    selectedElevation,
+    plotImageData,
+    errorMessage,
+  ];
 }

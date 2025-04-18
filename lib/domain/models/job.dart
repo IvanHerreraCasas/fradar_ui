@@ -2,6 +2,7 @@
 import 'package:equatable/equatable.dart';
 
 enum JobType { animation, timeseries, accumulation, unknown }
+
 enum JobStatusEnum { pending, running, success, failure, revoked, unknown }
 
 class Job extends Equatable {
@@ -24,28 +25,28 @@ class Job extends Equatable {
   final String statusDetails;
   final DateTime? submittedAt;
   final DateTime? lastCheckedAt;
-  final dynamic resultData; // Use specific types or keep dynamic
+  final dynamic resultData;
   final String? errorMessage;
 
   // Factory to create an initial Job when submitted
   factory Job.submitted({
-     required String taskId,
-     required JobType jobType,
-     required Map<String, dynamic> parameters,
+    required String taskId,
+    required JobType jobType,
+    required Map<String, dynamic> parameters,
   }) {
-     return Job(
-        taskId: taskId,
-        jobType: jobType,
-        parameters: parameters,
-        status: JobStatusEnum.pending, // Initial status
-        submittedAt: DateTime.now(),
-     );
+    return Job(
+      taskId: taskId,
+      jobType: jobType,
+      parameters: parameters,
+      status: JobStatusEnum.pending, // Initial status
+      submittedAt: DateTime.now(),
+    );
   }
-
 
   // Factory or method to update Job from API status response
   Job updateFromApiStatus(Map<String, dynamic> apiStatusJson) {
-    final details = apiStatusJson['status_details'] as Map<String, dynamic>? ?? {};
+    final details =
+        apiStatusJson['status_details'] as Map<String, dynamic>? ?? {};
     final statusStr = details['status'] as String? ?? 'UNKNOWN';
     final errorInfo = details['error_info'] as String?;
     // final resultInfo = details['result']; // Might contain filename or data hints
@@ -63,8 +64,8 @@ class Job extends Equatable {
         currentStatus = JobStatusEnum.failure;
         break;
       case 'REVOKED':
-         currentStatus = JobStatusEnum.revoked;
-         break;
+        currentStatus = JobStatusEnum.revoked;
+        break;
       default:
         currentStatus = JobStatusEnum.unknown;
     }
@@ -102,29 +103,39 @@ class Job extends Equatable {
     return Job(
       taskId: json['taskId'] as String? ?? '',
       jobType: JobType.values.firstWhere(
-          (e) => e.name == json['jobType'], orElse: () => JobType.unknown),
+        (e) => e.name == json['jobType'],
+        orElse: () => JobType.unknown,
+      ),
       parameters: Map<String, dynamic>.from(json['parameters'] ?? {}),
       status: JobStatusEnum.values.firstWhere(
-          (e) => e.name == json['status'], orElse: () => JobStatusEnum.unknown),
+        (e) => e.name == json['status'],
+        orElse: () => JobStatusEnum.unknown,
+      ),
       statusDetails: json['statusDetails'] as String? ?? '',
-      submittedAt: json['submittedAt'] == null ? null : DateTime.tryParse(json['submittedAt']),
-      lastCheckedAt: json['lastCheckedAt'] == null ? null : DateTime.tryParse(json['lastCheckedAt']),
+      submittedAt:
+          json['submittedAt'] == null
+              ? null
+              : DateTime.tryParse(json['submittedAt']),
+      lastCheckedAt:
+          json['lastCheckedAt'] == null
+              ? null
+              : DateTime.tryParse(json['lastCheckedAt']),
       errorMessage: json['errorMessage'] as String?,
       // resultData is not loaded from JSON
     );
   }
 
   Job copyWith({
-    // String? taskId, // Usually taskId doesn't change
+    // Usually taskId doesn't change
     JobType? jobType,
     Map<String, dynamic>? parameters,
     JobStatusEnum? status,
     String? statusDetails,
     DateTime? submittedAt,
     DateTime? lastCheckedAt,
-    dynamic resultData, // Allow updating result
+    dynamic resultData,
     String? errorMessage,
-    bool clearResult = false, // Helper
+    bool clearResult = false,
     bool clearError = false,
   }) {
     return Job(
@@ -142,14 +153,14 @@ class Job extends Equatable {
 
   @override
   List<Object?> get props => [
-        taskId,
-        jobType,
-        parameters,
-        status,
-        statusDetails,
-        submittedAt,
-        lastCheckedAt,
-        resultData, // Note: Equatable might struggle with dynamic/Uint8List comparison
-        errorMessage,
-      ];
+    taskId,
+    jobType,
+    parameters,
+    status,
+    statusDetails,
+    submittedAt,
+    lastCheckedAt,
+    resultData, // Note: Equatable might struggle with dynamic/Uint8List comparison
+    errorMessage,
+  ];
 }

@@ -1,7 +1,6 @@
 // lib/presentation/features/historic_plots/bloc/historic_plots_event.dart
 import 'package:equatable/equatable.dart';
 import 'package:fradar_ui/domain/models/job.dart'; // Import Job model
-import 'dart:typed_data'; // For potential image data if needed directly in event
 
 abstract class HistoricPlotsEvent extends Equatable {
   const HistoricPlotsEvent();

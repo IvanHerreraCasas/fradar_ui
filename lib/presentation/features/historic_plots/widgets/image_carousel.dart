@@ -35,7 +35,7 @@ class ImageCarousel extends StatelessWidget {
     final bool hasFrames = frames.isNotEmpty;
     final bool isValidIndex = hasFrames && currentFrameIndex >= 0 && currentFrameIndex < frames.length;
     final String frameTimestamp = isValidIndex
-        ? DateFormat.yMd().add_Hms().format(frames[currentFrameIndex].dateTimeUtc.toLocal()) + ' (Local)'
+        ? '${DateFormat.yMd().add_Hms().format(frames[currentFrameIndex].dateTimeUtc.toLocal())} (Local)'
         : 'No frame selected';
 
     return Column(

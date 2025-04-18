@@ -5,9 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:fradar_ui/domain/models/job.dart';
 import 'package:fradar_ui/presentation/features/tasks/bloc/tasks_bloc.dart';
 import 'package:fradar_ui/presentation/features/tasks/bloc/tasks_event.dart';
-// Import Historic Plots Bloc if needed for "View Result" navigation
-// import 'package:fradar_ui/presentation/features/historic_plots/bloc/historic_plots_bloc.dart';
-// import 'package:fradar_ui/app/bloc/app_bloc.dart'; // For navigation
 
 class JobListItem extends StatelessWidget {
   final Job job;
@@ -148,30 +145,36 @@ class JobListItem extends StatelessWidget {
     // --- Job Type Specific Parameters ---
     switch (job.jobType) {
       case JobType.animation:
-        if (params['variable'] != null)
+        if (params['variable'] != null) {
           widgets.add(
             Text(
               'Var: ${params['variable']} @ ${params['elevation']}°',
               style: style,
             ),
           );
+        }
         // Could add extent display if needed: if (params['extent'] != null) ...
         break;
       case JobType.timeseries:
-        if (params['pointName'] != null)
+        if (params['pointName'] != null) {
           widgets.add(Text('Point: ${params['pointName']}', style: style));
-        if (params['variable'] != null)
+        }
+        if (params['variable'] != null) {
           widgets.add(Text('Var: ${params['variable']}', style: style));
+        }
         break;
       case JobType.accumulation:
-        if (params['pointName'] != null)
+        if (params['pointName'] != null) {
           widgets.add(Text('Point: ${params['pointName']}', style: style));
-        if (params['interval'] != null)
+        }
+        if (params['interval'] != null) {
           widgets.add(Text('Interval: ${params['interval']}', style: style));
-        if (params['rateVariable'] != null)
+        }
+        if (params['rateVariable'] != null) {
           widgets.add(
             Text('Rate Var: ${params['rateVariable']}', style: style),
           );
+        }
         break;
       case JobType.unknown:
         break;

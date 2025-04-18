@@ -1,4 +1,6 @@
 // lib/presentation/features/timeseries/widgets/map_display.dart
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -35,7 +37,7 @@ class _MapDisplayState extends State<MapDisplay> {
   // Helper to calculate center (same as before)
   LatLng _calculateCenter(List<Point> points) {
      if (points.isEmpty) {
-       // Use Piura, Peru as default (closer to user's likely data?)
+       // Use Piura, Peru as default
        return const LatLng(-5.1945, -80.6328);
      }
      double avgLat = points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length;
@@ -56,7 +58,7 @@ class _MapDisplayState extends State<MapDisplay> {
             final centerTarget = selectedPoints.isNotEmpty ? _calculateCenter(selectedPoints) : center; // Center on selected if any, else all
             final double targetZoom = 9.5; // Zoom out more if multiple points selected
 
-            print('MapDisplay Listener: Points loaded, moving map center to $centerTarget');
+            log('MapDisplay Listener: Points loaded, moving map center to $centerTarget', name: "MapDisplay");
             _mapController.move(centerTarget, targetZoom); // Adjust zoom as needed
             setState(() { // Use setState to update the flag within the State object
                _initialCenterSet = true;

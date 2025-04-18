@@ -1,5 +1,6 @@
 // lib/presentation/features/timeseries/bloc/timeseries_bloc.dart
 import 'dart:async';
+import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:collection/collection.dart';
@@ -8,8 +9,6 @@ import 'package:fradar_ui/domain/models/timeseries_datapoint.dart';
 import 'package:fradar_ui/domain/repositories/radproc_repository.dart';
 import 'timeseries_event.dart';
 import 'timeseries_state.dart';
-// Import TimeseriesDataPoint if parsing JSON
-// import 'package:fradar_ui/domain/models/timeseries_datapoint.dart';
 
 class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
   final RadprocRepository _radprocRepository;
@@ -41,8 +40,9 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
         // Only react to relevant job types
         if (job.jobType == JobType.timeseries ||
             job.jobType == JobType.accumulation) {
-          print(
+          log(
             'TimeseriesBloc received relevant job update: ${job.taskId} Status: ${job.status.name}',
+            name: "TimeseriesBloc"
           );
           add(JobUpdateReceived(job));
         }
@@ -61,7 +61,9 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
       state.copyWith(status: TimeseriesStatus.loadingPoints, clearError: true),
     );
     try {
+      log("Fetching points...", name: "TimeseriesBloc");
       final points = await _radprocRepository.fetchPoints();
+      log("Points fetched: $points", name: "TimeseriesBloc");
       // Determine a sensible default variable if needed
       final defaultVariable =
           points.isNotEmpty ? points.first.variable : 'RATE';
@@ -158,8 +160,9 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
     Emitter<TimeseriesState> emit,
   ) {
     if (!state.isAccumulationSelected ||
-        event.interval == state.selectedInterval)
+        event.interval == state.selectedInterval) {
       return; // Only applicable for accumulation
+    }
 
     emit(
       state.copyWith(
@@ -176,8 +179,9 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
     DateTimeRangeChanged event,
     Emitter<TimeseriesState> emit,
   ) {
-    if (event.start == state.startDt && event.end == state.endDt)
+    if (event.start == state.startDt && event.end == state.endDt) {
       return; // No change
+    }
 
     emit(
       state.copyWith(
@@ -282,10 +286,16 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
                 variable: state.selectedVariable,
               );
             }
-            print('Submitted job ${submittedJob.taskId} for point $pointName');
+            log(
+              'Submitted job ${submittedJob.taskId} for point $pointName',
+              name: "TimeseriesBloc",
+            );
             _radprocRepository.monitorJob(submittedJob);
           } catch (e) {
-            print('Failed to submit job for point $pointName: $e');
+            log(
+              'Failed to submit job for point $pointName: $e',
+              name: "TimeseriesBloc",
+            );
             // Update state immediately to show error for this specific point
             final errorUpdateLoading = Map<String, bool>.from(
               state.pointLoadingStatus,
@@ -312,8 +322,9 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
 
     // Wait for all submissions to finish (or fail individually)
     await Future.wait(submissionFutures);
-    print(
+    log(
       'Finished attempting submissions for ${submissionFutures.length} points.',
+      name: "TimeseriesBloc",
     );
     // Final status will be updated progressively by JobCompletedInternal events
   }
@@ -359,8 +370,9 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
         try {
           // Fetch and parse data ONLY on success
           List<TimeseriesDataPoint> parsedData = [];
-          print(
+          log(
             'Fetching data for successful job ${job.taskId} (${job.jobType.name}) for point $pointName',
+            name: "TimeseriesBloc",
           );
 
           if (job.jobType == JobType.timeseries) {
@@ -377,14 +389,15 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
               job.taskId,
             );
           }
-          print(
+          log(
             'Received ${parsedData.length} processed data points for $pointName.',
+            name: "TimeseriesBloc",
           );
-          print(parsedData);
           currentData[pointName] = parsedData; // Store fresh data
         } catch (e) {
-          print(
+          log(
             'Error fetching/parsing data for $pointName (${job.taskId}): $e',
+            name: "TimeseriesBloc",
           );
           currentErrors[pointName] = 'Data processing failed.'; // Set error
           currentData.remove(
@@ -423,7 +436,7 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
     Emitter<TimeseriesState> emit,
   ) async {
     final pointName = event.pointName;
-    print('Export requested for point $pointName');
+    log('Export requested for point $pointName', name: "TimeseriesBloc");
     // Check if data is actually loaded for this point without error
     if (state.pointData[pointName]?.isNotEmpty != true ||
         state.pointErrorStatus[pointName] != null) {
@@ -541,13 +554,16 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
             .length; // Simplistic check
 
     if (anyLoading) return TimeseriesStatus.loadingData; // Or partialDataLoad?
-    if (anyErrors && loadedCount < selectedPoints.length)
+    if (anyErrors && loadedCount < selectedPoints.length) {
       return TimeseriesStatus
           .partialDataLoad; // Some errors, maybe some success
-    if (anyErrors && loadedCount == 0)
+    }
+    if (anyErrors && loadedCount == 0) {
       return TimeseriesStatus.dataLoadError; // All selected have errors
-    if (!anyLoading && !anyErrors && loadedCount == selectedPoints.length)
+    }
+    if (!anyLoading && !anyErrors && loadedCount == selectedPoints.length) {
       return TimeseriesStatus.allDataLoaded; // All loaded successfully
+    }
     return TimeseriesStatus.idle; // Default idle state
   }
 
@@ -579,10 +595,12 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
 
     if (anySelectedLoading) return TimeseriesStatus.loadingData;
     if (allSelectedLoaded) return TimeseriesStatus.allDataLoaded;
-    if (anySelectedLoaded || anySelectedWithError)
+    if (anySelectedLoaded || anySelectedWithError) {
       return TimeseriesStatus.partialDataLoad; // Mix of loaded/error/pending
-    if (selectedPoints.every((p) => errors[p] != null))
+    }
+    if (selectedPoints.every((p) => errors[p] != null)) {
       return TimeseriesStatus.dataLoadError; // All failed
+    }
 
     return TimeseriesStatus
         .idle; // Default if no points selected or state is indeterminate

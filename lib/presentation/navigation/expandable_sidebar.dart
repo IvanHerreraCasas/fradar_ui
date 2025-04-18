@@ -16,7 +16,7 @@ class _ExpandableSidebarState extends State<ExpandableSidebar> {
   bool _isExpanded = false;
   Timer? _collapseTimer; // Timer for delayed collapse
 
-  // Define navigation destinations (same as before)
+  // Define navigation destinations
   final List<NavigationRailDestination> _destinations = const [
      NavigationRailDestination(
       icon: Icon(Icons.radar_outlined),
