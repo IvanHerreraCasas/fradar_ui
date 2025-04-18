@@ -40,8 +40,8 @@ void main() async {
   final baseUrl = await settingsApi.getApiBaseUrl() ?? 'http://localhost:8000/api/v1'; // Default fallback
   final dioOptions = BaseOptions(
     baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 5),
-    receiveTimeout: const Duration(seconds: 10),
+    connectTimeout: const Duration(seconds: 25),
+    receiveTimeout: const Duration(seconds: 25),
   );
   final dioClient = Dio(dioOptions);
 
