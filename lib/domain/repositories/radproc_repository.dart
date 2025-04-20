@@ -538,8 +538,8 @@ class RadprocRepository {
       // Fetch as CSV string
       final csvData = await _fetchTimeseriesCsvString(
         job.taskId,
-        job.parameters['startDt'],
-        job.parameters['endDt'],
+        DateTime.tryParse(job.parameters['startDt'])!,
+        DateTime.tryParse(job.parameters['endDt'])!,
       );
       log(
         'Fetched ${csvData.length} chars of CSV data for job ${job.taskId}. Prompting user to save...',
