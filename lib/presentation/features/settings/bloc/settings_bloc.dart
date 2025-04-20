@@ -57,8 +57,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     final urlToSave = state.apiUrl.trim(); // Trim whitespace
 
     // Optional: Basic URL validation
-    if (urlToSave.isEmpty ||
-        !(Uri.tryParse(urlToSave)?.hasAbsolutePath ?? false)) {
+    if (urlToSave.isEmpty ) {
       emit(
         state.copyWith(
           status: SettingsStatus.failure,
