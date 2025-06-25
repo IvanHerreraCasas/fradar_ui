@@ -6,7 +6,6 @@ class Point extends Equatable {
     required this.name,
     required this.latitude,
     required this.longitude,
-    required this.variable,
     required this.elevation,
     required this.description,
   });
@@ -14,7 +13,6 @@ class Point extends Equatable {
   final String name;
   final double latitude;
   final double longitude;
-  final String variable; // The default variable associated with the point
   final double elevation; // The default elevation associated with the point
   final String description;
 
@@ -22,11 +20,10 @@ class Point extends Equatable {
      // Add type checking and default values or throw error for robustness
      try {
         return Point(
-          name: json['name'] as String? ?? 'Unknown Name',
+          name: json['point_name'] as String? ?? 'Unknown Name',
           latitude: (json['latitude'] as num? ?? 0.0).toDouble(),
           longitude: (json['longitude'] as num? ?? 0.0).toDouble(),
-          variable: json['variable'] as String? ?? 'UNKNOWN',
-          elevation: (json['elevation'] as num? ?? 0.0).toDouble(),
+          elevation: (json['target_elevation'] as num? ?? 0.0).toDouble(),
           description: json['description'] as String? ?? '',
         );
      } catch (e) {
@@ -39,7 +36,6 @@ class Point extends Equatable {
         name,
         latitude,
         longitude,
-        variable,
         elevation,
         description,
       ];

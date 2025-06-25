@@ -65,8 +65,7 @@ class TimeseriesBloc extends Bloc<TimeseriesEvent, TimeseriesState> {
       final points = await _radprocRepository.fetchPoints();
       log("Points fetched: $points", name: "TimeseriesBloc");
       // Determine a sensible default variable if needed
-      final defaultVariable =
-          points.isNotEmpty ? points.first.variable : 'RATE';
+      final defaultVariable = 'RATE';
       emit(
         state.copyWith(
           status: TimeseriesStatus.idle, // Ready for interaction
